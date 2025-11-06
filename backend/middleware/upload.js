@@ -21,6 +21,46 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage });
+const imageFilter = (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowed.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Invalid file type'), false);
+    }
+};
 
-module.exports = upload;
+const fileFilter = (req, file, cb) => {
+    const allowed = [
+        // Images
+        'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
+        // PDFs
+        'application/pdf',
+        // Docs
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        // PPT
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        // Text / others
+        'text/plain', 'application/zip'
+    ];
+    if (allowed.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Unsupported file type for upload'), false);
+    }
+};
+
+uploadTweetImage=multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter: imageFilter
+}).array('images', 4); // max 4 images
+
+const uploadFile=multer({
+    storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    fileFilter: fileFilter
+}).single('file', 1); // single file
+module.exports = {uploadTweetImage,uploadFile};

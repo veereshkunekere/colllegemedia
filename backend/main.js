@@ -11,16 +11,15 @@ const authRoute=require("./routers/auth.router");
 const tweetRoute=require("./routers/tweet.router");
 const uploadRoute=require("./routers/upload.router");
 const adminRoute=require("./routers/admin.router");
+const messageRoute=require("./routers/messages.router");
 const socketManager=require('./controllers/socketManager');
 
 const app=express();
 const port=3000;
 
-const server=require('http').createServer(app);
-const io=socketManager(server);
-
 app.use(cors({
     origin: 'http://localhost:5173', // Replace with your frontend URL
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true, // Allow cookies to be sent with requests
 }));
 app.use(bodyParser.json({limit: '50mb'}));
@@ -32,6 +31,10 @@ app.use("/api/admin",adminRoute);
 app.use("/api/tweet",tweetRoute);
 app.use("/api/upload",uploadRoute);
 app.use("/api/auth",authRoute);
+app.use("/api/messages",messageRoute)
+
+const server=require('http').createServer(app);
+socketManager(server);
 
 const db=async ()=>{
    try {
@@ -42,12 +45,9 @@ const db=async ()=>{
    }
 }
 
-app.all('*', (req, res) => {
-    res.send('404 Page Not Found!');
-});
-
-
-app.listen(port,(req,res)=>{
+server.listen(port,(req,res)=>{
     console.log(`Server is running on http://localhost:${port}`);
     db();
 })
+
+

@@ -1,78 +1,98 @@
 import React from 'react';
 import axios from 'axios';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState,useEffect } from 'react';
+import { Link, replace, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/useAuthStore';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 function Login() {
     const navigate = useNavigate();
+    const [email,setEmail]=useState("");
+    const [password,setPassword]=useState("");
+    const [showPassword,setShowPassword]=useState(false);
+    const {authuser,isLoggingIn,login}=useAuthStore();
 
-    const ForgotPassword = async () => {
-       try {
-         const response=await axios.post('http://localhost:3000/forgot-password', {
-            email: document.getElementById('email').value
-        },{
-            withCredentials: true, // Include cookies in the request
-        });
-        if (response.status === 200) {
-            alert("Password reset link sent to your email!");   
-        } else {
-            alert("Failed to send password reset link. Please try again.");
+    const ForgotPass=async (e)=>{
+      // e.preventDefault();
+      try {
+        const result=await axios.post("http://localhost:3000/api/auth/forgot-password",{email:email},
+          {
+            withCredentials:true
+          }
+        );
+        console.log(result)
+        if(result.status===200){
+          console.log("Email sent")
         }
-       } catch (error) {
-        console.error("Error sending password reset link:", error);
-        alert("An error occurred while sending the password reset link. Please try again.");    
-       }
-    }   
-
-    const submit = async (e) => {
-        e.preventDefault();     
-        const email = e.target.email.value;
-        const password = e.target.password.value;
-        try {
-            const response = await axios.post('http://localhost:3000/login', {
-            email: email,   
-            password:password},
-            {
-                withCredentials: true, // Include cookies in the request
-            }
-            );
-        const data = response;
-        console.log("Response", data.message);
-        if(response.status === 200) {
-            alert("Login successful!"); 
-            navigate('/home'); // Navigate to profile page on successful login
-        } else {
-            alert("Login failed: " + data.message);
-        }
-        } catch (error) {
-            console.error("Error during login:", error);
-            alert("Login failed. Please check your credentials and try again.");
-        }
+      } catch (error) {
+        console.log(error)
+      }
     }
 
-    const Register = (e) => {
-        e.preventDefault(); // Prevent default anchor behavior
-        navigate('/verify-email'); // Navigate to registration page   
+   const Login=async (e)=>{
+    e.preventDefault();
+   try {
+     const response=await login(email,password); //authstore login method
+     if(response?.status === 200) {
+            navigate('/home',{replace:true}); // Navigate to profile page on successful login
+        } else {
+            alert("Login failed: " + response.data);
+        }
+   } catch (error) {
+    console.error("Login error:", error);
+   }
+ }
+
+const toggleButton=(e)=>{
+    e.preventDefault();
+    setShowPassword(!showPassword)
+}
+
+useEffect(() => {
+    if (authuser) {
+      navigate('/home', { replace: true });
     }
-    return ( 
-       <>
-       <form className="login-form" onSubmit={submit}>
-           <h2>Login</h2>           
-              <div className="form-group">
-                <label htmlFor="email">Email:</label>
-                <input type="email" id="email" name="email" required />
-               </div>
+  }, [authuser, navigate]);
 
-                <div className="form-group">
-                <label htmlFor="password">Password:</label>
-                <input type="password" id="password" name="password" required />
-                </div>
 
-                <button type="submit">Login</button>
-                 <p>Don't have an account? <a onClick={Register}>Register</a></p> {/*TODO : */}
-                <p><a  onClick={ForgotPassword}>Forgot Password?</a></p>
-              </form>
-       </>
-     );
+    return(
+        <div className="h-screen w-screen bg-[#FCD8CD] p-8 flex justify-center items-center">
+  <div className="bg-[#FEEBF6] h-3/4 w-full max-w-md rounded-2xl flex flex-col gap-6 items-center flex-shrink-0 p-6">
+    <h1 className="font-bold text-3xl text-gray-900 p-4">Login</h1>
+
+    <form onSubmit={Login} className="flex flex-col gap-6 w-full">
+      <input
+        type="email"
+        onChange={(e)=>setEmail(e.target.value)}
+        placeholder="Enter your email"
+        className="bg-white h-12 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 px-4"
+      />
+     <div className='relative w-full'>
+         <input
+        type={showPassword?"text":"password"}
+        onChange={(e)=>{setPassword(e.target.value)}}
+        placeholder="Enter password"
+        className="bg-white h-12 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 px-4"
+      />
+      <button type='button' className='absolute top-1/2 right-4 transform -translate-y-1/2 cursor-pointer text-gray-600' onClick={toggleButton}>{showPassword?<VisibilityIcon/>:<VisibilityOffIcon/>}</button>
+     </div>
+      <button type='submit' className="h-12 w-full bg-yellow-400 rounded-xl text-white font-medium hover:bg-yellow-500">
+        {isLoggingIn?"Singing In....":"Signin"}
+      </button>
+    </form>
+
+    <p onClick={()=>ForgotPass()} className="text-lg font-light cursor-pointer m-8">Forgot password?</p>
+
+    <Link
+      to="/verify-email"
+      className="text-xl text-blue-600 hover:underline font-medium"
+    >
+      ---Create Account---
+    </Link>
+  </div>
+</div>
+
+    )
 }
 
 export default Login;

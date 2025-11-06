@@ -3,56 +3,63 @@ const crypto=require("crypto");
 const jwt=require("jsonwebtoken");
 const Tweet=require("../models/tweet.models");
 const multer = require('multer'); 
-const upload = multer({ dest: 'uploads/' }); 
+const upload = require("../middleware/upload"); 
 const fs=require('fs');
 const tweetController={};
+const {uploadImage}=require("../util/cloudinary")
+const path=require("path");
 
-tweetController.makeAtweet=async (req, res) => {
-     // Get the token from cookies
-    console.log(req.file)
+tweetController.makeAtweet = async (req, res) => {
    
-     const allowedFileTypes = ['image/jpeg', 'image/png', 'image/webp', ];
     try {
-        const user = await User.findById(req.user); // Find the user by ID
-        if(!user){
-            return res.status(404).json({message: "User not found"});
-        }
-        const {content,isAnonymus,image} = req.body; // Extract content from request body
+        // 1. Validate user
+        const user = await User.findById(req.user);
+        if (!user) return res.status(404).json({ message: "User not found" });
 
-        if(!req.file.mimetype || !allowedFileTypes.includes(req.file.mimetype)){
-            return res.status(400).json({message: "Invalid file type"});
-        }
+        // 2. Body
+        const { content, isAnonymus } = req.body;
+        if (!content || content.length > 280)
+            return res.status(400).json({ message: "Content required ≤ 280 chars" });
 
-        if(!content || content.length > 280){
-            return res.status(400).json({message: "Content is required and must be less than 280 characters"});
-        }
-        console.log(user);
+        const isAnonymous = isAnonymus === "true";
+
+        // 4. Create tweet (no images yet)
         const tweet = new Tweet({
-            content: content,
-            userId: user._id, // Associate the tweet with the user
-            comments:null,
-            username:user.username,
-            isAnonymous:isAnonymus,
-            reports:[]
+            content,
+            userId: user._id,
+            username: user.username,
+            isAnonymous,
+            imageUrls: [],          // will be filled below
+            reports: [],
+            comments: [],
+            likes:[]
         });
-        const fileExtension=req.file.originalname.split(".").pop().toLowerCase();
-        const ImageUrl=await cloudinary.uploadImage(req.file.path,`tweet_${tweet._id}.${fileExtension}`);
-        tweet.imageUrl=ImageUrl;
-        console.log(tweet);
-        const savedTweet = await tweet.save(); // Save the tweet document
-        console.log("Tweet saved successfully:", savedTweet);
 
-        fs.unlinkSync(req.file?.path)
+       if (req.files && req.files.length > 0) {
+            for (const file of req.files) {
+                const publicId = `tweet_${tweet._id}_${Date.now()}`;
+                const url = await uploadImage(file.path, publicId);
+                tweet.imageUrls.push(url);
+                fs.unlinkSync(file.path); // cleanup
+            }
+        }
 
-        res.status(200).json({message: "Tweet posted successfully", savedTweet});
+        // 6. Save
+        const savedTweet = await tweet.save();
+        console.log("Tweet saved:", savedTweet);
+
+        return res.status(200).json({ message: "Tweet posted", savedTweet });
+
     } catch (error) {
         console.error("Error posting tweet:", error);
-        res.status(500).json({message: "Internal server error"});
+        // optional: clean up already-uploaded Cloudinary images on failure
+        return res.status(500).json({ message: "Internal server error" });
     }
-}
+};
+
 
 tweetController.getTweets=async (req,res)=>{
-    console.log("triggered tweetfeed")
+    // console.log("triggered tweetfeed")
     const token=req.cookies.token;
     if(!token){
         return res.status(201).json({message:"unauthorized user"});

@@ -2,8 +2,21 @@ const User=require("../models/user.models");
 const crypto=require("crypto");
 const transporter=require("../util/nodemailer");
 const jwt=require("jsonwebtoken");
+const bcrypt=require("bcryptjs")
 
 const authController={};
+
+authController.dsignup=async (req,res)=>{
+    const {username,email, password,role,department,batch,course} = req.body;
+    const user=new User({
+        username:username,
+        email:email,
+        password:password,
+        role:role,
+    });
+    user.save();
+
+}
 
 authController.verifyEmail=async (req,res)=>{
      const {email,password}=req.body;
@@ -49,6 +62,24 @@ authController.verifyEmail=async (req,res)=>{
          res.status(201).json({message:"error in verification email"})
      }
   }
+
+authController.verifyToken=async (req,res)=>{
+    try {
+        console.log("Verifying token for user ID:", req.user);
+            const user=await User.findById(req.user).select('-password');
+    if(user){
+        // console.log("user authorized")
+      return res.status(200).json({data:"authorized",user});
+    }
+    // console.log("user authorized")
+    return res.status(401).json({data:"unauthorized",
+        user:user
+    });
+  }
+    catch (err) {
+      return res.status(401).json({message:"token invalid or expired"});
+    }
+}
 
  authController.registerUser= async (req, res) => {
     const token=req.params.token;
@@ -217,11 +248,13 @@ authController.verifyEmail=async (req,res)=>{
           return res.status(400).json({message: "User not found"});
       }
   
+      console.log("User found:");
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if(!isPasswordValid){
+        console.log("Invalid password for user:", email);
           return res.status(400).json({message: "Invalid password"});
       }
-      const token = jwt.sign({id:user._id}, process.env.JWT_SECRET, {expiresIn: '1h'}); // Generate JWT token
+      const token = jwt.sign({id:user._id}, process.env.JWT_SECRET, {expiresIn: '24h'}); // Generate JWT token
       res.cookie('token',token, {
           expires: new Date(Date.now() + 24*3600000), // 1 hour expiration
           httpOnly:true,
@@ -236,5 +269,18 @@ authController.verifyEmail=async (req,res)=>{
 
     res.status(200).json({message: "Logged out successfully"});
 }
+
+ authController.resetPasswordDirect = async (req, res) => {
+  const { email, newPassword } = req.body;
+  try {
+    const user = await require("../models/user.models").findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    user.password = newPassword;
+    await user.save();
+    res.status(200).json({ message: "Password reset successful" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
  module.exports=authController

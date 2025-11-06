@@ -6,8 +6,8 @@ const tweetSchema= new mongoose.Schema({
         trim: true,
         maxlength: 280 // Twitter's character limit
     },
-    imageUrl: {
-        type: String,
+    imageUrls: {
+        type: [String],
         default: null
     },
     username:{

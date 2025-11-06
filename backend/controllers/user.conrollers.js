@@ -7,21 +7,23 @@ const upload = multer({ dest: 'uploads/' });
 const fs=require('fs');
 
 userController.getProfile=async (req, res) => {
+    console.log("trying profile")
     try {
         const user = await User.findById(req.user).select('-password'); // Exclude password from response
         if(!user){
             return res.status(404).json({message: "User not found"});
         }
-        res.status(200).json({user});
+        // console.log("Fetched user profile:", user);
+        res.status(200).json({data:user});
     } catch (error) {
         console.error("Error verifying token:", error);
         res.status(401).json({message: "Unauthorized"});
     }
 }
 
-userController.EditProfile=upload.single('image') ,async (req, res) => {
-    console.log("Updating profile with data:", req.body);
+userController.EditProfile=async (req, res) => {
     try {
+            console.log("Updating profile with data:", req.body);
         const user = await User.findById(req.user); // Find the user by ID
         if(!user){
             return res.status(404).json({message: "User not found"});
