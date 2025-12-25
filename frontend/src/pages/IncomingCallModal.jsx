@@ -7,7 +7,7 @@ import { useAuthStore } from '../store/useAuthStore';
 
 const IncomingCallModal = ({ show, fromUserId, fromUsername, offer, onDecline,onAnswer }) => {
   const navigate = useNavigate();
-  const { setPendingOffer } = useCallStore();
+  const { setPendingOffer,setInCallWith } = useCallStore();
   const {socket}=useAuthStore();
   if (!show) return null;
 
@@ -15,6 +15,7 @@ const IncomingCallModal = ({ show, fromUserId, fromUsername, offer, onDecline,on
     if (offer) {
       setPendingOffer(offer);  // Store for VideoMeetComponet to consume
     }
+    setInCallWith(fromUserId)
     useCallStore.setState({ isInitiator: false });
     navigate(`/call/${fromUserId}`);
     onAnswer();

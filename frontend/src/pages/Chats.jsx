@@ -3,6 +3,7 @@ import { chatStore } from "../store/chatStore";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ChatBubbleIcon from '@mui/icons-material/ChatBubble';
+import KeyboardBackspaceIcon from '@mui/icons-material/KeyboardBackspace';
 
 function Chats() {
     const { getMessagedContacts, isLoadingContacts, contacts, setSelectedUser, selectedUser, getChats } = chatStore();

@@ -93,7 +93,7 @@ const Chatpage = () => {
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="w-full md:w-80 text-white h-full overflow-y-auto">
+      <div className={`w-0 ${selectedUser?'md-20':'md-80'} text-white h-full overflow-y-auto`}>
         <Chats />
       </div>
       {/* Chat Area */}
@@ -165,7 +165,7 @@ const Chatpage = () => {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center w-80">
               <p className="text-gray-500 text-lg">Select a contact to start chatting.</p>
             </div>
           )}
@@ -176,4 +176,3 @@ const Chatpage = () => {
 };
 
 export default Chatpage;
-

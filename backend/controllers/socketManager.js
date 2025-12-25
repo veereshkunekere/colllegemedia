@@ -60,6 +60,15 @@ const socketManager = (server) => {
          const { candidate, to } = data;
          emitToUser(to, 'video-ice-candidate', { from: userId, candidate });  // Forward ICE to other peer
        });
+
+       socket.on('audio-state-change',(data)=>{
+        emitToUser(data.to,'audio-state-change',{audioState:data.audioState,from:userId})
+       });
+
+       socket.on('video-state-change',(data)=>{
+        console.log(data)
+          emitToUser(data.to,'video-state-change',{videoState:data.videoState,from:userId})
+       })
        
        socket.on('end-call', (data) => {
        console.log(`Received end-call from ${userId} to ${data.to}`);

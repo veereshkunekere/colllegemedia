@@ -20,7 +20,7 @@ authController.dsignup=async (req,res)=>{
 
 authController.verifyEmail=async (req,res)=>{
      const {email,password}=req.body;
-     console.log(email,password)
+    //  console.log(email,password)
       if(!email.includes('@mvsrec.edu.in')){
          console.log("email invalid")
          return res.status(400).json({message: "Invalid email address"});
@@ -41,9 +41,9 @@ authController.verifyEmail=async (req,res)=>{
         newUser.verificationToken=verificationTokenHash;
         newUser.verificationExpires=verificationExpires;
         await newUser.save();
-        console.log("verifiaction token geneerated",verificationToken);
-        console.log("hashed verification token generated",verificationTokenHash)
-        console.log(newUser);
+        // console.log("verifiaction token geneerated",verificationToken);
+        // console.log("hashed verification token generated",verificationTokenHash)
+        // console.log(newUser);
         const verifyEmailLink=`http://localhost:5173/register/${verificationToken}`
         const message=`Click the below link to verify the Email ${verifyEmailLink}`;
         try {
