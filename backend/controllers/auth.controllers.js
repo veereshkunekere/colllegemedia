@@ -254,12 +254,13 @@ authController.verifyToken=async (req,res)=>{
         console.log("Invalid password for user:", email);
           return res.status(400).json({message: "Invalid password"});
       }
+
       const token = jwt.sign({id:user._id}, process.env.JWT_SECRET, {expiresIn: '24h'}); // Generate JWT token
       res.cookie('token',token, {
           expires: new Date(Date.now() + 24*3600000), // 1 hour expiration
           httpOnly:true,
           secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-          sameSite: 'None' // Prevent CSRF attacks
+          sameSite: 'Strict' // Prevent CSRF attacks
       })
       res.status(200).json({message: "Login successful", user});
     }

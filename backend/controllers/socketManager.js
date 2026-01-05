@@ -2,10 +2,16 @@ const { get } = require('http');
 const { Server } = require('socket.io');
 const onlineUsers = new Map(); // userId => { sockets: [], timeout: null }
 
+var Origin;
+if(process.env.NODE_ENV==='production'){
+    Origin='https://colllegemedia-frontend.onrender.com'
+}else{
+    Origin='http://localhost:5173'
+}
 const socketManager = (server) => {
     const io = new Server(server, {
         cors: {
-            origin: 'https://colllegemedia-froontend.onrender.com',
+            origin: Origin,
             methods: ['GET', 'POST'],
             credentials: true,
         },
