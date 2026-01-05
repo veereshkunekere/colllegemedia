@@ -259,7 +259,7 @@ authController.verifyToken=async (req,res)=>{
           expires: new Date(Date.now() + 24*3600000), // 1 hour expiration
           httpOnly:true,
           secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-          sameSite: 'strict' // Prevent CSRF attacks
+          sameSite: 'None' // Prevent CSRF attacks
       })
       res.status(200).json({message: "Login successful", user});
     }
