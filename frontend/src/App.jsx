@@ -39,6 +39,13 @@ function Layout() {
                             className="bg-transparent outline-none text-white placeholder-gray-500 w-full text-sm"
                         />
                     </div>
+                    <Link
+                     to="/chats"
+                      className="md:hidden flex items-center justify-center bg-gray-900 p-2 rounded-full"
+                    >
+                    <ChatBubbleIcon className="w-6 h-6 text-white" />
+                    </Link>
+
                 </div>
             </header>
 
