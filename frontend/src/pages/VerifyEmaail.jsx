@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "../util/api";
 import { useNavigate } from "react-router-dom";
 
 function VerifyEmail() {
@@ -11,9 +11,7 @@ function VerifyEmail() {
             password:password
          }
          try {
-            const response=await axios.post("http://localhost:3000/verify-email",data,{
-                withCredentials:true
-            });
+            const response=await api.post("/verify-email",data);
 
             if(response.status===200){
                 console.log("ok");

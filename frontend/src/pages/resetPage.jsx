@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "../util/api";
 import React from "react";
 
 function ResetPasswordPage() {
@@ -13,9 +13,7 @@ function ResetPasswordPage() {
             return;
         }
         try {
-           const response=await axios.post(`http://localhost:3000/api/auth/reset-password/${token}`,{newPassword:newPassword},{
-            withCredentials:true,
-            })
+           const response=await api.post(`/auth/reset-password/${token}`,{newPassword:newPassword})
             if (response.status === 200) {
                 alert("Password reset successfully!");
             } else {

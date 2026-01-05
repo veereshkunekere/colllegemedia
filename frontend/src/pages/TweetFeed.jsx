@@ -1,5 +1,5 @@
 // Updated TweetFeed.jsx (X-like Tweet Cards)
-import axios from "axios";
+import api from "../util/api";
 import { useEffect, useState } from "react";
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -17,9 +17,7 @@ function TweetFeed() {
 
     const getTweets = async () => {
         try {
-            const response = await axios.get("http://localhost:3000/api/tweet/tweetfeed", {
-                withCredentials: true
-            });
+            const response = await api.get("/tweet/tweetfeed");
             console.log("called");
             console.log(response.data.data);
             console.log(response.data.user);
@@ -47,9 +45,7 @@ function TweetFeed() {
             console.log("error", error);
         }
         try {
-            const response = await axios.post("http://localhost:3000/tweetlike", { id: id }, {
-                withCredentials: true
-            });
+            const response = await api.post("/tweetlike", { id: id });
             if (response.status === 200) {
                 console.log("like updated");
             }
@@ -58,9 +54,7 @@ function TweetFeed() {
 
     const Report = async (id) => {
         try {
-            const response = await axios.post("http://localhost:3000/reportTweet", { id: id, userId: currussr }, {
-                withCredentials: true
-            });
+            const response = await api.post("/reportTweet", { id: id, userId: currussr });
             if (response.status === 200) {
                 console.log("reported", response.data.message);
             }

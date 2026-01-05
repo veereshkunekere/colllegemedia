@@ -1,5 +1,5 @@
 import React from 'react';
-import axios from 'axios';
+import api from '../util/api';
 import { useState,useEffect } from 'react';
 import { Link, replace, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
@@ -15,11 +15,7 @@ function Login() {
     const ForgotPass=async (e)=>{
       // e.preventDefault();
       try {
-        const result=await axios.post("http://localhost:3000/api/auth/forgot-password",{email:email},
-          {
-            withCredentials:true
-          }
-        );
+        const result=await api.post("/auth/forgot-password",{email:email});
         console.log(result)
         if(result.status===200){
           console.log("Email sent")

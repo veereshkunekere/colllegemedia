@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "../util/api";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 function Profile() {
@@ -9,9 +9,7 @@ function Profile() {
 
     const getProfile = async () => {
         try {
-            const response = await axios.get("http://localhost:3000/api/user/profile", {
-                withCredentials: true
-            });
+            const response = await api.get("/user/profile");
             if (response.status === 200 && response.data?.data) {
                 console.log(response.data.data);
                 setUser(response.data.data);

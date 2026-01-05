@@ -1,5 +1,5 @@
 import {create} from "zustand"
-import axios from "axios"
+import api from "../util/api"
 import { useAuthStore } from "./useAuthStore";
 export const chatStore = create((set,get)=>({
     isLoadingContacts:false,
@@ -11,9 +11,7 @@ export const chatStore = create((set,get)=>({
     getMessagedContacts:async ()=>{
        try{
         set({isLoadingContacts:true});
-        const response=await axios.get("http://localhost:3000/api/messages/getContacts",{
-            withCredentials:true
-        },);
+        const response=await api.get("/messages/getContacts");
         console.log(response);
         const users=response.data.users;
          set({ contacts: users });
@@ -31,9 +29,7 @@ export const chatStore = create((set,get)=>({
         if(userId === get().selectedUser || !userId) return;
         set({selectedUser:userId});
         set({isLoadingMessages:true});
-        const response=await axios.get(`http://localhost:3000/api/messages/getChats/${userId}`,{
-            withCredentials:true
-        });
+        const response=await api.get(`/messages/getChats/${userId}`);
         const data=response.data.messages;
         set({messages:data});
         console.log("messages", data);
@@ -50,9 +46,7 @@ export const chatStore = create((set,get)=>({
 
     sendMessage: async (message) => {
       try {
-        const response = await axios.post("http://localhost:3000/api/messages/sendMessage", message, {
-          withCredentials: true,
-        });
+        const response = await api.post("/messages/sendMessage", message);
         console.log("response from sendMessage", response.data);
         // Add sent message to local state
         set((state) => ({

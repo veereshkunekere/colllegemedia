@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import axios from 'axios';
+import api from '../util/api';
 
 function Upload() {
     const [selectedFile, setSelectedFile] = useState(null);
@@ -31,12 +31,11 @@ function Upload() {
         }
 
         try {
-            const response = await axios.post(
-                "http://localhost:3000/api/upload/upload-file",
+            const response = await api.post(
+                "/upload/upload-file",
                 formData,
                 {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                    withCredentials: true
+                    headers: { 'Content-Type': 'multipart/form-data' }
                 }
             );
             console.log("Response", response);

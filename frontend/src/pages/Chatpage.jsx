@@ -4,7 +4,7 @@ import Chats from './Chats';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCallStore } from '../store/useCallStore';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../util/api';
 
 const Chatpage = () => {
 
@@ -40,10 +40,7 @@ const Chatpage = () => {
   useEffect(() => {
     if (selectedUser) {
       getChats(selectedUser);
-       axios.get(`http://localhost:3000/api/messages/isOnline/${selectedUser}`, {
-        withCredentials: true,
-      }
-       )
+       api.get(`/messages/isOnline/${selectedUser}`)
         .then(res => setIsOnline(res.data.isOnline))
         .catch(() => setIsOnline(false));
     }

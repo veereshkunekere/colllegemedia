@@ -5,20 +5,23 @@ const bodyParser=require('body-parser');
 const cors=require('cors');
 const cookieParser=require('cookie-parser');
 const mongoose=require('mongoose');
-
+const path=require('path');
 const userRoute=require("./routers/user.router");
 const authRoute=require("./routers/auth.router");
 const tweetRoute=require("./routers/tweet.router");
 const uploadRoute=require("./routers/upload.router");
 const adminRoute=require("./routers/admin.router");
 const messageRoute=require("./routers/messages.router");
+
+
 const socketManager=require('./controllers/socketManager');
+const { meta } = require('./util/nodemailer');
 
 const app=express();
 const port=process.env.PORT;
 
 app.use(cors({
-    origin: '*', // Replace with your frontend URL
+    origin: 'http://localhost:5173', // Replace with your frontend URL
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true, // Allow cookies to be sent with requests
 }));
@@ -26,12 +29,31 @@ app.use(bodyParser.json({limit: '50mb'}));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));  
 app.use(cookieParser());
 
-app.use("/api/user",userRoute);
-app.use("/api/admin",adminRoute);
-app.use("/api/tweet",tweetRoute);
-app.use("/api/upload",uploadRoute);
-app.use("/api/auth",authRoute);
-app.use("/api/messages",messageRoute)
+const mounts = [
+    { path: "/api/user", router: userRoute },
+    { path: "/api/admin", router: adminRoute },
+    { path: "/api/tweet", router: tweetRoute },
+    { path: "/api/upload", router: uploadRoute },
+    { path: "/api/auth", router: authRoute },
+    { path: "/api/messages", router: messageRoute },
+];
+
+for (const m of mounts) {
+    try {
+        app.use(m.path, m.router);
+        console.log(`Mounted ${m.path}`);
+    } catch (err) {
+        console.error(`Failed to mount ${m.path}:`, err && err.stack ? err.stack : err);
+        throw err;
+    }
+}
+if(process.env.NODE_ENV==="production"){
+    app.use(express.static(path.join(__dirname,"../frontend/dist")));
+    app.get(/.*/, (req, res) => {
+        res.sendFile(path.join(__dirname, "../frontend","dist","index.html"));
+    });
+}
+
 
 const server=require('http').createServer(app);
 socketManager(server);

@@ -1,7 +1,9 @@
-import axios from "axios";
+import api, { BASE_URL } from "../util/api";
 import { create } from "zustand";
 import { io } from "socket.io-client";
-const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:3000" : "/";
+
+// For socket connection, remove trailing /api if present
+const SOCKET_BASE = (BASE_URL && BASE_URL.endsWith('/api')) ? BASE_URL.replace(/\/api$/, '') : BASE_URL;
 
 export const useAuthStore = create((set, get) => ({
   authuser: null,
@@ -15,7 +17,7 @@ export const useAuthStore = create((set, get) => ({
   login: async (email, password) => {
     try {
       set({ isLoggingIn: true });
-      const response = await axios.post(`${BASE_URL}/api/auth/login`, {
+      const response = await api.post(`/auth/login`, {
         email: email,
         password: password
       }, {
@@ -45,7 +47,7 @@ export const useAuthStore = create((set, get) => ({
     if (!authuser || socket?.connected || !hasCheckedAuth) return;  // Strong guard: Skip duplicates
     console.log("Connecting socket...");
     console.log("authuser", authuser);
-    const newSocket = io(`${BASE_URL}`, {
+    const newSocket = io(SOCKET_BASE || '/', {
       query: { userId: authuser._id },
       withCredentials: true,
     });
@@ -70,9 +72,7 @@ export const useAuthStore = create((set, get) => ({
     }
     set({ isCheckingAuth: true, hasCheckedAuth: true });  // Set guard EARLY
     try {
-      const response = await axios.get(`${BASE_URL}/api/auth/verify-token`, {
-        withCredentials: true,
-      });
+      const response = await api.get(`/auth/verify-token`);
       console.log("Auth check response:", response);
       if (response.status === 200 && response.data.user && response.data.data === "authorized") {
         set({ authuser: response.data.user });
@@ -93,9 +93,7 @@ export const useAuthStore = create((set, get) => ({
   logout: async () => {
     try {
       set({ isLoggingOut: true });
-      const response = await axios.post(`${BASE_URL}/api/auth/logout`, {}, {
-        withCredentials: true,
-      });
+      const response = await api.post(`/auth/logout`, {});
       if (response.status === 200) {
         const socket = get().socket;
         set({ authuser: null, socket: null, hasCheckedAuth: false });  // Reset guard for next login

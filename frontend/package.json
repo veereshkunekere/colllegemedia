@@ -16,6 +16,7 @@
     "@mui/material": "^7.3.5",
     "@tailwindcss/vite": "^4.1.10",
     "axios": "^1.9.0",
+    "campusmedia": "file:..",
     "fetch": "^1.1.0",
     "react": "^19.1.0",
     "react-cookie": "^8.0.1",

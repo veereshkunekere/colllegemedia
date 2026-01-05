@@ -1,5 +1,5 @@
 // Tweet.jsx
-import axios from "axios";
+import api from "../util/api";
 import { useState, useRef } from "react";
 
 export default function Tweet() {
@@ -40,11 +40,10 @@ export default function Tweet() {
         });
 
         try {
-            const { data } = await axios.post(
-                "http://localhost:3000/api/tweet",
-                formData,
-                { withCredentials: true }
-            );
+            const { data } = await api.post(
+                    "/tweet",
+                    formData
+                );
             console.log("Tweet posted:", data);
             form.reset();
             setPreviews([]);

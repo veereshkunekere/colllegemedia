@@ -1,6 +1,6 @@
 /*  ProfileEdit.jsx  */
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../util/api";
 
 function ProfileEdit() {
   const [avatar, setAvatar] = useState(null);          // current picture URL
@@ -15,9 +15,8 @@ function ProfileEdit() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const { data } = await axios.get(
-          "http://localhost:3000/api/user/profile",
-          { withCredentials: true }
+        const { data } = await api.get(
+          "/user/profile"
         );
 
         if (data?.data) {
@@ -81,12 +80,11 @@ function ProfileEdit() {
     if (image) formData.append("image", image);
 
     try {
-      const response = await axios.put(
-        "http://localhost:3000/api/user/profile/edit",
+      const response = await api.put(
+        "/user/profile/edit",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
-          withCredentials: true,
         }
       );
 

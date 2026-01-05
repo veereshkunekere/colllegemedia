@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "../util/api";
 import { useNavigate } from "react-router-dom";
 
 function Signup() {
@@ -28,9 +28,8 @@ function Signup() {
         console.log("Form Data", formData);
         
         try {
-            const response = await axios.post(`http://localhost:3000/register/${window.location.pathname.split('/')[2]}`,info,{
-            withCredentials: true, // Include cookies in the request
-        });
+            const response = await api.post(`/register/${window.location.pathname.split('/')[2]}`,info,{
+            });
         const data = response.data;
         console.log("Response", data);
         if (response.status === 200) {
