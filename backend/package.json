@@ -18,7 +18,6 @@
     "@mui/material": "^7.1.1",
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
-    "campusmedia": "file:..",
     "cloudinary": "^2.6.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

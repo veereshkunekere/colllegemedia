@@ -18,7 +18,7 @@ const socketManager=require('./controllers/socketManager');
 const { meta } = require('./util/nodemailer');
 
 const app=express();
-const port=process.env.PORT;
+const port=process.env.PORT || 3000;
 
 app.use(cors({
     origin: 'http://localhost:5173', // Replace with your frontend URL
@@ -46,12 +46,6 @@ for (const m of mounts) {
         console.error(`Failed to mount ${m.path}:`, err && err.stack ? err.stack : err);
         throw err;
     }
-}
-if(process.env.NODE_ENV==="production"){
-    app.use(express.static(path.join(__dirname,"../frontend/dist")));
-    app.get(/.*/, (req, res) => {
-        res.sendFile(path.join(__dirname, "../frontend","dist","index.html"));
-    });
 }
 
 
