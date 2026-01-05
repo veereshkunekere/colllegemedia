@@ -1,10 +1,9 @@
 import axios from 'axios';
 
 // Dev: include /api in base so dev calls can use endpoints without /api prefix
-const BASE = import.meta.env.DEV ? 'http://localhost:3000/api' : 'http://localhost:3000/api';
+const BASE = "https://colllegemedia.onrender.com/api"
 const api = axios.create({
-    
-  baseURL: "http://localhost:3000/api",
+  baseURL: "https://colllegemedia.onrender.com/api",
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
