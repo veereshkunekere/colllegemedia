@@ -131,6 +131,34 @@ export default function VideoMeetComponet() {
     }
   };
 
+  const cleanupLocal = () => {
+  console.log('[VideoMeet] Local cleanup only');
+
+  if (screenStreamRef.current) {
+    screenStreamRef.current.getTracks().forEach(t => t.stop());
+    screenStreamRef.current = null;
+  }
+
+  if (localStreamRef.current) {
+    localStreamRef.current.getTracks().forEach(t => t.stop());
+    localStreamRef.current = null;
+  }
+
+  if (peerConnectionRef.current) {
+    peerConnectionRef.current.close();
+    peerConnectionRef.current = null;
+  }
+
+  clearPendingOffer();
+  clearCall();
+};
+
+const endCall = () => {
+  console.log('[VideoMeet] Signaling end-call');
+  cleanupLocal();
+  socket.emit('end-call', { to: remoteId });
+};
+
   // Socket listeners
   useEffect(() => {
     if (!socket || !remoteId || setupRef.current) return;
@@ -181,7 +209,7 @@ export default function VideoMeetComponet() {
     const handleEndCall = (data) => {
       if (data.from !== remoteId) return;
       console.log(`[VideoMeet ${mountId}] Call ended by remote`);
-      endCallCleanup();
+      cleanupLocal();
       navigate(-1);
     };
 
@@ -205,30 +233,17 @@ export default function VideoMeetComponet() {
     };
   }, [socket, remoteId, isInitiator]);
 
-  const endCallCleanup = () => {
-    console.log(`[VideoMeet ${mountId}] Ending call`);
-    if (screenStreamRef.current) {
-    screenStreamRef.current.getTracks().forEach(track => track.stop());
-    screenStreamRef.current = null;
-   }
-    setScreenShare(false);
-    if (localStreamRef.current) localStreamRef.current.getTracks().forEach(track => track.stop());
-    if (peerConnectionRef.current) peerConnectionRef.current.close();
-    clearPendingOffer();
-    localStreamRef.current = null;
-    clearCall();
-    socket.emit('end-call', { to: remoteId });
-  };
+
 
   const handleEndCall = () => {
     if (window.confirm('End video call?')) {
-      endCallCleanup();
+      endCall();
       navigate(-1);
     }
   };
 
   const handleReconnect = () => {
-    endCallCleanup();
+    cleanupLocal();
     navigate(`/chats/${remoteId}`);  // Back to chat to re-start
   };
 
@@ -238,7 +253,7 @@ export default function VideoMeetComponet() {
       console.log('selectedUser',selectedUser,'from',from,"remoteId",remoteId );
       if (from ===remoteId ) {  // Match to current call
         console.log(`[VideoMeet ${mountId}] Call declined by remote`);
-        endCallCleanup();
+        cleanupLocal();
         alert('Call was declined by the other user.');
         navigate(-1);
       }
@@ -268,11 +283,22 @@ export default function VideoMeetComponet() {
     });
 
     return () => {
-      console.log(`[VideoMeet ${mountId}] Unmount cleanup`);
+      console.log(`[VideoMeet ${mountId}] Unmount cleanup(no auto end)`);
       setupRef.current = false;
-      endCallCleanup();
     };
   }, []);  // Once on mount
+
+  useEffect(() => {
+  if (
+    peerConnectionRef.current &&
+    pendingOffer &&
+    !isInitiator
+  ) {
+    console.log('[VideoMeet] Handling delayed pending offer');
+    handleOffer(pendingOffer);
+    clearPendingOffer();
+  }
+}, [pendingOffer]);
 
   useEffect(()=>{
     if(!isRemoteCamOff && remoteVideoRef.current && remoteStreamRef.current){
@@ -434,7 +460,7 @@ const stopScreenSharing = async () => {
        {isRemoteCamOff?
        <div className="relative w-full h-full border-2 border-white flex items-center justify-center bg-gray-800">
         <div className="w-20 h-20 flex items-center justify-center rounded-full bg-green-400 text-white text-4xl font-bold">
-         {inCallwith.charAt(0).toUpperCase()}
+         {inCallwith?.charAt(0)?.toUpperCase()}
         </div>
       </div>
        :
@@ -447,7 +473,7 @@ const stopScreenSharing = async () => {
       {isCamOff?
       <div className="absolute top-4 right-4 w-40 h-40 border-2 border-white flex items-center justify-center bg-gray-800">
         <div className="w-20 h-20 flex items-center justify-center rounded-full bg-green-400 text-white text-4xl font-bold">
-         {inCallwith.charAt(0).toUpperCase()}
+         {inCallwith?.charAt(0)?.toUpperCase()}
         </div>
       </div>
       :

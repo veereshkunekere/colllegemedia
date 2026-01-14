@@ -58,7 +58,7 @@ function Profile() {
                                 />
                             ) : (
                                 <div className="w-full h-full bg-gradient-to-br from-blue-900 to-purple-900 flex items-center justify-center text-gray-300 font-bold text-2xl">
-                                    {user?.username?.charAt(0).toUpperCase() || '?'}
+                                    {user?.username?.charAt(0)?.toUpperCase() || '?'}
                                 </div>
                             )}
                         </div>

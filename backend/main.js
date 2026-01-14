@@ -21,8 +21,8 @@ const app=express();
 const port=process.env.PORT || 3000;
 
 app.use(cors({
-    origin:"http://localhost:5173", // Replace with your frontend URL in development
-    // origin: 'https://colllegemedia-froontend.onrender.com', // Replace with your frontend URL
+    // origin:"http://localhost:5173", // Replace with your frontend URL in development
+    origin: 'https://colllegemedia-froontend.onrender.com', // Replace with your frontend URL
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true, // Allow cookies to be sent with requests
 }));

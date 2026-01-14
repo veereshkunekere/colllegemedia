@@ -1,17 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState,useRef } from "react";
 import { chatStore } from "../store/chatStore";
-import Chats from './Chats';
-import { useAuthStore } from '../store/useAuthStore';
-import { useCallStore } from '../store/useCallStore';
-import { useNavigate } from 'react-router-dom';
-import api from '../util/api';
+import Chats from "./Chats";
+import { useAuthStore } from "../store/useAuthStore";
+import { useCallStore } from "../store/useCallStore";
+import { useNavigate } from "react-router-dom";
+import api from "../util/api";
 
 const Chatpage = () => {
-
   const [messageText, setMessageText] = useState("");
   const [isOnline, setIsOnline] = useState(false);
   const navigate = useNavigate();
-
+  const BottomRef = useRef(null);
   const {
     contacts,
     selectedUser,
@@ -22,151 +21,158 @@ const Chatpage = () => {
     getMessagedContacts,
   } = chatStore();
 
-  const {socket}=useAuthStore();
+  const { socket } = useAuthStore();
 
   useEffect(() => {
-    getMessagedContacts();  // Fetch contacts on load
+    getMessagedContacts();
   }, [getMessagedContacts]);
 
-  useEffect(() => {
-    if(socket) listenForSocketMessages(socket);
-    return ()=>{
-     if(socket) socket.off("newMessage")
+  useEffect(()=>{
+    if(BottomRef.current){
+      BottomRef.current.scrollIntoView({behavior:"smooth"})
     }
-  },[socket,listenForSocketMessages])
-  // Fetch messages when selectedUser changes
+  })
+  useEffect(() => {
+    if (socket) listenForSocketMessages(socket);
+    return () => socket?.off("newMessage");
+  }, [socket, listenForSocketMessages]);
 
-  // Check online status when selectedUser changes
   useEffect(() => {
     if (selectedUser) {
       getChats(selectedUser);
-       api.get(`/messages/isOnline/${selectedUser}`)
-        .then(res => setIsOnline(res.data.isOnline))
+      api
+        .get(`/messages/isOnline/${selectedUser}`)
+        .then((res) => setIsOnline(res.data.isOnline))
         .catch(() => setIsOnline(false));
     }
   }, [selectedUser, getChats]);
 
   useEffect(() => {
-    if (socket) {
-      const handleUserOnline = (id) => {
-        if (id === selectedUser) {
-          setIsOnline(true);
-          console.log(`User ${id} came online`);
-        }
-      };
+    if (!socket) return;
 
-      const handleUserOffline = (id) => {
-        if (id === selectedUser) {
-          setIsOnline(false);
-          console.log(`User ${id} went offline`);
-        }
-      };
+    const online = (id) => id === selectedUser && setIsOnline(true);
+    const offline = (id) => id === selectedUser && setIsOnline(false);
 
-      socket.on('userOnline', handleUserOnline);
-      socket.on('userOffline', handleUserOffline);
+    socket.on("userOnline", online);
+    socket.on("userOffline", offline);
 
-      return () => {
-        socket.off('userOnline', handleUserOnline);
-        socket.off('userOffline', handleUserOffline);
-      };
-    }
+    return () => {
+      socket.off("userOnline", online);
+      socket.off("userOffline", offline);
+    };
   }, [socket, selectedUser]);
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || !selectedUser) return;
 
-    const newMessage = {
+    await sendMessage({
       senderId: localStorage.getItem("id"),
       receiverId: selectedUser,
       message: messageText,
       timestamp: new Date().toISOString(),
-    };
-
-    await sendMessage(newMessage);
+    });
 
     setMessageText("");
   };
 
+ 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen">
       {/* Sidebar */}
-      <div className={`w-0 ${selectedUser?'md-20':'md-80'} text-white h-full overflow-y-auto`}>
+      <div className={`hidden md:block ${selectedUser ? "md:w-80" : "md:w-96"}`}>
         <Chats />
       </div>
+
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col h-full">
-        <div className="flex-1 flex flex-col bg-white rounded-lg shadow-lg">
-          {selectedUser ? (
-            <>
-              <div className="flex items-center px-4 py-3 bg-gray-900 text-white rounded-t-lg">
-                
-                <img
-                  src="/default-avatar.png"
-                  alt="DP"
-                  className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
-                />
-
-                <div className="ml-3">
-                  <p className="text-lg font-semibold">
-                    {contacts.find((u) => u._id === selectedUser)?.username || "User"}
-                  </p>
-                  <p className="text-sm text-green-400">{isOnline?"Online":"Offline"}</p>
-                </div>
-
-                {selectedUser && isOnline  && (
-                 <div className='ml-auto'>
-                  <button
-                    onClick={() => {
-                    useCallStore.setState({ isInitiator: true });  // Already good, but add guard if needed
-                    navigate(`/call/${selectedUser}`);
-                }}
-                      className="ml-2 bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-                 >
-                   Call
-                  </button>
-                 </div>
-               )}
+      <div className="flex-1 flex flex-col bg-[#efeae2]">
+        {selectedUser ? (
+          <>
+            {/* Header */}
+            <div className="flex items-center px-4 py-3 bg-[#075e54] text-white sticky top-0 z-10">
+              <img
+                src="/default-avatar.png"
+                alt="avatar"
+                className="w-11 h-11 rounded-full"
+              />
+              <div className="ml-3">
+                <p className="font-bold text-lg">
+                  {contacts.find((u) => u._id === selectedUser)?.username ||
+                    "User"}
+                </p>
+                <p className="text-sm text-[#d9fdd3]">
+                  {isOnline ? "online" : "offline"}
+                </p>
               </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages && messages.length > 0 ? (
-                  messages.map((msg, index) => (
-                    <div
-                      key={index}
-                      className={`p-3 rounded-lg max-w-md ${
-                        msg.senderId === localStorage.getItem("id")
-                          ? "bg-blue-500 text-white ml-auto"
-                          : "bg-gray-200 text-gray-800 mr-auto"
-                      }`}
-                    >
-                      {msg.text}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500 text-center mt-10">No messages yet. Start the conversation!</p>
-                )}
-              </div>
-              <div className="flex items-center gap-2 p-4 border-t bg-gray-100 rounded-b-lg">
-                <input
-                  type="text"
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-1 p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-                />
+
+              {isOnline && (
                 <button
-                  onClick={handleSendMessage}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+                  onClick={() => {
+                    useCallStore.setState({ isInitiator: true });
+                    navigate(`/call/${selectedUser}`);
+                  }}
+                  className="ml-auto bg-[#25d366] px-3 py-1 rounded-full text-sm"
                 >
-                  Send
+                  Call
                 </button>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center w-80">
-              <p className="text-gray-500 text-lg">Select a contact to start chatting.</p>
+              )}
             </div>
-          )}
-        </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {messages.map((msg, i) => {
+                const isMe =
+                  msg.senderId === localStorage.getItem("id");
+
+                return (
+                  <div
+                    key={i}
+                    className={`flex ${
+                      isMe ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`relative px-3 py-2 max-w-xs max-w-md text-sm shadow text-gray-800
+                        ${
+                          isMe
+                            ? "bg-[#d9fdd3] rounded-lg rounded-tr-none"
+                            : "bg-white rounded-lg rounded-tl-none"
+                        }`}
+                    >
+                      <p>{msg.text}</p>
+                      <span className="block text-[10px] text-gray-500 text-right mt-1">
+                        {new Date(msg.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit"
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={BottomRef}></div>
+            </div>
+
+            {/* Input */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#f0f2f5] sticky bottom-0">
+              <input
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                placeholder="Type a message"
+                className="flex-1 px-4 py-2 rounded-full text-sm outline-none text-black"
+              />
+              <button
+                onClick={handleSendMessage}
+                className="bg-[#25d366] text-white px-4 py-2 rounded-full"
+              >
+                Send
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center justify-center flex-1 text-gray-500">
+            Select a chat to start messaging
+          </div>
+        )}
       </div>
     </div>
   );
