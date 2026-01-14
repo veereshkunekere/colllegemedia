@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-const BASE = import.meta.env.VITE_ENV === "development" ? "http://localhost:3000/api" : "https://colllegemedia.onrender.com/api"
+const BASE = import.meta.env.VITE_ENV_MODE === "development" ? "http://localhost:3000/api" : "https://colllegemedia.onrender.com/api"
+console.log("API BASE URL:", BASE);
 const api = axios.create({
-  baseURL: "http://localhost:3000/api",
+  baseURL: BASE,
   // baseURL:"https://colllegemedia.onrender.com/api",
   withCredentials: true,
   headers: {
