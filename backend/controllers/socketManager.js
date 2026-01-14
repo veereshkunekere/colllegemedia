@@ -7,6 +7,9 @@ const socketManager = (server) => {
         cors: {
             origin:'http://localhost:5173',
             // origin: 'https://colllegemedia-froontend.onrender.com', // Replace with your frontend URL
+            origin: ["https://colllegemedia-froontend.onrender.com",
+      "https://colllegemedia-frontend.onrender.com",
+      "http://localhost:5173"],
             methods: ['GET', 'POST'],
             credentials: true,
         },
