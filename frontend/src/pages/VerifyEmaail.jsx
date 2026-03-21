@@ -11,7 +11,7 @@ function VerifyEmail() {
             password:password
          }
          try {
-            const response=await api.post("/verify-email",data);
+            const response=await api.post("/auth/verify-email",data);
 
             if(response.status===200){
                 console.log("ok");

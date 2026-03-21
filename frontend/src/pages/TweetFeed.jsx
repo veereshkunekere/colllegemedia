@@ -17,7 +17,7 @@ function TweetFeed() {
 
     const getTweets = async () => {
         try {
-            const response = await api.get("/tweet/tweetfeed");
+            const response = await api.get("/tweet/tweetFeed");
             console.log("called");
             console.log(response.data.data);
             console.log(response.data.user);
@@ -94,10 +94,10 @@ function TweetFeed() {
                         {/* Tweet Content */}
                         <div className="p-4">
                             <p className="text-white text-base leading-relaxed">{tweet.content}</p>
-                            {tweet.imageUrl && (
+                            {tweet.imageUrls && (
                                 <div className="mt-3">
                                     <img
-                                        src={tweet.imageUrl}
+                                        src={tweet.imageUrls[0]}
                                         alt="tweet"
                                         className="w-full rounded-2xl max-h-96 object-cover"
                                     />

@@ -5,8 +5,6 @@ const onlineUsers = new Map(); // userId => { sockets: [], timeout: null }
 const socketManager = (server) => {
     const io = new Server(server, {
         cors: {
-            origin:'http://localhost:5173',
-            // origin: 'https://colllegemedia-froontend.onrender.com', // Replace with your frontend URL
             origin: ["https://colllegemedia-froontend.onrender.com",
       "https://colllegemedia-frontend.onrender.com",
       "http://localhost:5173"],

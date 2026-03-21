@@ -9,9 +9,7 @@ function ProfileEdit() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  /* ------------------------------------------------- */
-  /*  Load current profile (username, bio, link, pic)  */
-  /* ------------------------------------------------- */
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -40,9 +38,7 @@ function ProfileEdit() {
     fetchProfile();
   }, []);
 
-  /* ------------------------------------------------- */
-  /*  Live preview when a new image is selected        */
-  /* ------------------------------------------------- */
+ 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;

@@ -52,7 +52,7 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
-uploadTweetImage=multer({
+const uploadTweetImage=multer({
     storage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
     fileFilter: imageFilter

@@ -271,6 +271,7 @@ authController.verifyToken=async (req,res)=>{
     res.status(200).json({message: "Logged out successfully"});
 }
 
+//TODO: Remove this function in production, it's only for testing purposes to reset password without email verification
  authController.resetPasswordDirect = async (req, res) => {
   const { email, newPassword } = req.body;
   try {
