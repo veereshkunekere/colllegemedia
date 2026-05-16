@@ -14,7 +14,7 @@ authController.dsignup=async (req,res)=>{
         password:password,
         role:role,
     });
-    user.save();
+    await user.save();
 
 }
 
@@ -56,7 +56,7 @@ authController.verifyEmail=async (req,res)=>{
         } catch (error) {
           console.log("error sending verification email")
         }
-        return res.status(201).json({message:"sent verification email successfully",data:verifyEmailLink})
+        return res.status(500).json({message:"sent verification email successfully"})
      } catch (error) {
          console.log("ërror in verifying email",error);
          res.status(201).json({message:"error in verification email"})
@@ -120,7 +120,7 @@ authController.verifyToken=async (req,res)=>{
 
     const isUserExists= await User.findOne({email});
 
-    if(isUserExists.isVerified===true){
+    if(isUserExists && isUserExists.isVerified===true){
         return res.status(400).json({message: "User already exists with this email"});
     }
 
@@ -248,13 +248,12 @@ authController.verifyToken=async (req,res)=>{
           return res.status(400).json({message: "User not found"});
       }
   
-      console.log("User found:");
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if(!isPasswordValid){
         console.log("Invalid password for user:", email);
           return res.status(400).json({message: "Invalid password"});
       }
-
+      user.password=undefined; // Remove password from user object before sending response
       const token = jwt.sign({id:user._id}, process.env.JWT_SECRET, {expiresIn: '24h'}); // Generate JWT token
       res.cookie('token',token, {
           expires: new Date(Date.now() + 24*3600000), // 1 hour expiration
@@ -262,7 +261,7 @@ authController.verifyToken=async (req,res)=>{
           secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
           sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax'// Prevent CSRF attacks
       })
-      res.status(200).json({message: "Login successful", user});
+      res.status(200).json({message: "Login successful",token,user});
     }
 
   authController.Logout= (req, res) => {
