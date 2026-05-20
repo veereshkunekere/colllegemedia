@@ -6,7 +6,7 @@ const Router=require("express").Router();
 // Router.post("/",auth,upload.array(),tweetController.makeAtweet);
 
 Router.post(
-  "/",
+  "/create",
   auth,
   uploadTweetImage,          // <-- now .array()
   tweetController.makeAtweet

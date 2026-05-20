@@ -8,27 +8,30 @@ const fs=require('fs');
 const tweetController={};
 const {uploadImage}=require("../util/cloudinary")
 const path=require("path");
+const mongoose =require("mongoose");
 
 tweetController.makeAtweet = async (req, res) => {
    
     try {
+
+      if(req.files && req.files.length > 1){
+        return res.status(400).json({message: "Maximum 1 image allowed"});
+      }
         // 1. Validate user
         const user = await User.findById(req.user);
         if (!user) return res.status(404).json({ message: "User not found" });
 
         // 2. Body
-        const { content, isAnonymus } = req.body;
+        const { content, isAnonymous } = req.body;
         if (!content || content.length > 280)
             return res.status(400).json({ message: "Content required ≤ 280 chars" });
-
-        const isAnonymous = isAnonymus === "true";
 
         // 4. Create tweet (no images yet)
         const tweet = new Tweet({
             content,
             userId: user._id,
             username: user.username,
-            isAnonymous,
+            isAnonymous: isAnonymous === "true",
             imageUrls: [],          // will be filled below
             reports: [],
             comments: [],
@@ -46,6 +49,9 @@ tweetController.makeAtweet = async (req, res) => {
 
         // 6. Save
         const savedTweet = await tweet.save();
+        savedTweet.likesCount = 0;
+        savedTweet.likedByUser = false;
+        savedTweet.commentsCount = 0;
         console.log("Tweet saved:", savedTweet);
 
         return res.status(200).json({ message: "Tweet posted", savedTweet });
@@ -59,27 +65,92 @@ tweetController.makeAtweet = async (req, res) => {
 
 
 tweetController.getTweets=async (req,res)=>{
-    // console.log("triggered tweetfeed")
-    const token=req.cookies.token;
-    if(!token){
-        return res.status(201).json({message:"unauthorized user"});
+    try {
+      const limit = 10;
+
+      const cursor = req.query.cursor;
+
+      console.log("Fetching tweets with cursor:", cursor);
+      let query = {};
+
+      if (cursor) {
+        query._id = {
+          $lt:
+            new mongoose.Types.ObjectId(
+              cursor
+            ),
+        };
+      }
+
+      const posts = await Tweet.find(query).populate(
+            "userId",
+            "username profilePicture"
+          ).sort({
+            _id: -1,
+          })
+          .limit(limit);
+
+      const nextCursor =
+        posts.length === limit
+          ? posts[
+              posts.length - 1
+            ]._id
+          : null;
+
+      const formattedPosts = posts.map((post) => (
+        {
+           _id: post._id,
+           content: post.content,
+
+        createdAt:
+           post.createdAt,
+
+        isAnonymous:
+           post.isAnonymous,
+
+        username:
+          post.isAnonymous
+        ? "Anonymous"
+        : post.userId?.username,
+
+        profilePicture:
+          post.userId
+            ?.profilePicture ||
+          null,
+
+        likesCount:
+            post.likes?.length || 0,
+        
+        likedByUser:
+            post.likes.some((id) =>
+               id.toString() ===
+               req.user.toString()
+            ),
+
+        commentsCount:
+           post.comments?.length || 0,
+
+        imageUrls:
+           post.imageUrls,
+        
+  }));
+
+res.status(200).json({
+  posts: formattedPosts,
+
+  nextCursor,
+
+  hasMore:
+    posts.length === limit,
+});
+    } catch (error) {
+      console.log(error);
+
+      res.status(500).json({
+        message:
+          "Error fetching feed",
+      });
     }
-    const decode=jwt.verify(token,process.env.JWT_SECRET);
-    const user=await User.findById(decode.id);
-    if(!user){
-        return res.status(201).json({message:"user not found"});
-    }
-    let data=await Tweet.find({});
-    data=data.map((t)=>{
-        const tweet=t.toObject();
-        if(tweet.isAnonymous){
-            tweet.userId=null;
-            tweet.username=null;
-        }
-        return tweet;
-    })
-    // console.log(data);
-    res.status(200).json({message:"feed",data,user})
 }
 
 tweetController.likeATweet=async (req,res)=>{
@@ -91,17 +162,22 @@ tweetController.likeATweet=async (req,res)=>{
         if(!user){
             return res.status(404).json({message: "User not found"});
         }
-        console.log(user);
         const tweet=await Tweet.findById(tweetid);
-        console.log("tweet befor updation",tweet)
         if(!tweet.likes.includes(user._id)){
            tweet.likes.push(user._id);
         }else(
             tweet.likes=tweet.likes.filter((usr)=>usr.toString()!==user._id.toString())
         )
         await tweet.save();
-        console.log(tweet);
-        res.status(200).json({message: "Tweet posted successfully", tweet});
+        res.status(200).json({
+          success: true,
+          tweetId: tweet._id,
+          likesCount:tweet.likes.length,
+          likedByUser:tweet.likes.some((id) =>
+            id.toString() ===
+            user._id.toString()
+          )
+        });
     } catch (error) {
         console.error("Error posting tweet:", error);
         res.status(500).json({message: "Internal server error"});

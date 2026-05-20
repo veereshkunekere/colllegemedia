@@ -32,7 +32,7 @@ export default function Tweet() {
 
         const formData = new FormData();
         formData.append("content", content);
-        formData.append("isAnonymus", String(isAnonymous));
+        formData.append("isAnonymous", String(isAnonymous));
 
         // Append all selected files
         selectedFiles.forEach(file => {

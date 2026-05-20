@@ -56,7 +56,7 @@ authController.verifyEmail=async (req,res)=>{
         } catch (error) {
           console.log("error sending verification email")
         }
-        return res.status(500).json({message:"sent verification email successfully"})
+        return res.status(200).json({message:"sent verification email successfully"})
      } catch (error) {
          console.log("ërror in verifying email",error);
          res.status(201).json({message:"error in verification email"})
@@ -253,6 +253,7 @@ authController.verifyToken=async (req,res)=>{
         console.log("Invalid password for user:", email);
           return res.status(400).json({message: "Invalid password"});
       }
+      console.log("User authenticated successfully:", email);
       user.password=undefined; // Remove password from user object before sending response
       const token = jwt.sign({id:user._id}, process.env.JWT_SECRET, {expiresIn: '24h'}); // Generate JWT token
       res.cookie('token',token, {
