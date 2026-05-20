@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "mobfrontend",
+    "slug": "mobfrontend",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "mobfrontend",
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
