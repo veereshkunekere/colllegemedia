@@ -23,7 +23,7 @@ const originLink=process.env.NODE_ENV==="production" ? "https://colllegemedia-fr
 console.log("CORS Origin Link:", originLink);
 app.use(cors({
     // origin:"http://localhost:5173", // Replace with your frontend URL in development
-    origin: true, // Replace with your frontend URL
+    origin: originLink, // Replace with your frontend URL
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true, // Allow cookies to be sent with requests
 }));
