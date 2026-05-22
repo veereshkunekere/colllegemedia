@@ -1,0 +1,42 @@
+import API from "./api";
+
+export const fetchComments =
+  async (tweetId) => {
+    try {
+      const response =
+        await API.get(
+          `/tweet/comments/${tweetId}`
+        );
+
+      return response.data;
+    } catch (error) {
+      throw (
+        error.response?.data ||
+        error
+      );
+    }
+  };
+
+export const addComment =
+  async (
+    tweetId,
+    content
+  ) => {
+    try {
+      const response =
+        await API.post(
+          "/tweet/comment",
+          {
+            tweetId,
+            content,
+          }
+        );
+
+      return response.data;
+    } catch (error) {
+      throw (
+        error.response?.data ||
+        error
+      );
+    }
+  };

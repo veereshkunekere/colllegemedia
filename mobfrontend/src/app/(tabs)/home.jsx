@@ -18,9 +18,14 @@ import {
 import PostCard from
   "../../components/feed/PostCard";
 
-  import FeedHeader from "../../components/feed/FeedHeader"
-  import TrendingChips from "../../components/feed/TrendingChips"
+import FeedHeader from "../../components/feed/FeedHeader"
+import TrendingChips from "../../components/feed/TrendingChips"
+import CommentsBottomSheet from "../../components/feed/commentBottomSheet";
+import { useCommentStore } from "../../store/commentStore";
 export default function Home() {
+ 
+  const activePost = useCommentStore((state) => state.activePost);
+const setActivePost = useCommentStore((state) => state.setActivePost);
   const posts =
     usePostStore(
       (state) =>
@@ -51,17 +56,17 @@ export default function Home() {
         state.refreshPosts
     );
 
+
   useEffect(() => {
     fetchPosts(true);
   }, []);
+
 
   return (
     <View
       style={styles.container}
     >
-      <FlatList
-
-        data={posts}
+      <FlatList data={posts}
 
         ListHeaderComponent={
       <>
@@ -129,8 +134,16 @@ export default function Home() {
           )
         }
 
-        
+        removeClippedSubviews={true}
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={5}        
       />
+      <CommentsBottomSheet
+      post={activePost}
+      onClose={() => setActivePost(null)}
+     />
+  
     </View>
   );
 }

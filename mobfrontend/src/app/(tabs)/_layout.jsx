@@ -12,9 +12,9 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="home" />
-      <Tabs.Screen name="hub" />
-      <Tabs.Screen name="profile" />
+      <Tabs.Screen name="message" />
       <Tabs.Screen name="create"/>
+      <Tabs.Screen name="profile" />
     </Tabs>
   );
 }

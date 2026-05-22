@@ -10,12 +10,22 @@ import ImageViewing from "react-native-image-viewing";
 import { Ionicons } from "@expo/vector-icons";
 import {formatTimeAgo} from "../../utils/formatTime";
 import {usePostStore} from "../../store/postStore";
+import {
+  useCommentStore,
+} from "../../store/commentStore";
+
 export default function PostCard({ post }) {
   const isAnonymous = post.isAnonymous;
   const [visible,setVisible,] = useState(false);
   const toggleLike =usePostStore(
     (state) =>
       state.toggleLike
+  );
+
+  const setActivePost =
+  useCommentStore(
+    (state) =>
+      state.setActivePost
   );
 
   return (
@@ -85,8 +95,8 @@ export default function PostCard({ post }) {
         {post.content}
       </Text>
 
-      {post.imageUrls?.[0] && (
-  <>
+       {/*image section*/}
+      {post.imageUrls?.[0] && (<>
     <TouchableOpacity
       onPress={() =>
         setVisible(true)
@@ -105,8 +115,7 @@ export default function PostCard({ post }) {
       />
     </TouchableOpacity>
 
-    <ImageViewing
-      images={[
+    <ImageViewing images={[
         {
           uri:
             post.imageUrls[0],
@@ -128,8 +137,8 @@ export default function PostCard({ post }) {
 
       {/* ACTIONS */}
       <View style={styles.actions}>
+        
         <View style={styles.leftActions}>
-          <View style={styles.actionBtn}>
             <TouchableOpacity
              style={styles.actionBtn}
              onPress={() =>
@@ -152,21 +161,26 @@ export default function PostCard({ post }) {
               {post.likesCount || 0}
   </Text>
 </TouchableOpacity>
-          </View>
 
-          <View style={styles.actionBtn}>
-            <Ionicons
-              name="chatbubble-outline"
-              size={20}
-              color="#fff"
-            />
+<TouchableOpacity
+  style={styles.actionBtn}
+  onPress={() =>
+    setActivePost(post)
+    // console.log("Open comments for", post._id)
+  }
+>
+  <Ionicons
+    name="chatbubble-outline"
+    size={20}
+    color="#fff"
+  />
 
-            <Text style={styles.actionText}>
-              {post.commentsCount || 0}
-            </Text>
-          </View>
-        </View>
+  <Text style={styles.actionText}>
+    {post.commentsCount || 0}
+  </Text>
+</TouchableOpacity>
 
+     </View>
         <Ionicons
           name="share-social-outline"
           size={22}
@@ -174,6 +188,7 @@ export default function PostCard({ post }) {
         />
       </View>
     </View>
+    
   );
 }
 

@@ -15,6 +15,12 @@ import {
   useAuthStore,
 } from "../store/authStore";
 
+import {
+  BottomSheetModalProvider,
+} from "@gorhom/bottom-sheet";
+
+import {GestureHandlerRootView} from "react-native-gesture-handler";
+
 export default function RootLayout() {
   const checkAuth =
     useAuthStore(
@@ -54,18 +60,13 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Stack.Screen
-        name="(tabs)"
-      />
-
-      <Stack.Screen
-        name="(auth)"
-      />
-    </Stack>
+    <GestureHandlerRootView style={{ flex: 1 }} >
+      <BottomSheetModalProvider>
+        <Stack screenOptions={{headerShown: false,}}>
+         <Stack.Screen name="(tabs)"/>
+         <Stack.Screen name="(auth)"/>
+        </Stack>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
