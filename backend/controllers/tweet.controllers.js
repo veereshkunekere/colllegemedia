@@ -184,6 +184,130 @@ tweetController.likeATweet=async (req,res)=>{
     }
 }
 
+tweetController.addComment =async (req, res) => {
+    try {
+      const { tweetId, content } =
+        req.body;
+
+      if (
+        !content ||
+        !content.trim()
+      ) {
+        return res
+          .status(400)
+          .json({
+            message:
+              "Comment required",
+          });
+      }
+
+      const user =
+        await User.findById(
+          req.user
+        );
+
+      if (!user) {
+        return res
+          .status(404)
+          .json({
+            message:
+              "User not found",
+          });
+      }
+
+      const tweet =
+        await Tweet.findById(
+          tweetId
+        );
+
+      if (!tweet) {
+        return res
+          .status(404)
+          .json({
+            message:
+              "Tweet not found",
+          });
+      }
+
+      const newComment = {
+        userId: user._id,
+        content,
+        createdAt: new Date(),
+      };
+
+      tweet.comments.unshift(
+        newComment
+      );
+
+      await tweet.save();
+
+      res.status(200).json({
+        success: true,
+
+        comment:
+          tweet.comments[0],
+
+        commentsCount:
+          tweet.comments.length,
+      });
+    } catch (error) {
+      console.log(error);
+
+      res.status(500).json({
+        message:
+          "Error adding comment",
+      });
+    }
+  };
+
+tweetController.getComments =async (req, res) => {
+    try {
+      const { tweetId } =
+        req.params;
+
+      const tweet =
+        await Tweet.findById(
+          tweetId
+        ).populate(
+          "comments.userId",
+          "username profilePicture"
+          );
+
+      if (!tweet) {
+        return res
+          .status(404)
+          .json({
+            message:
+              "Tweet not found",
+          });
+      }
+
+      const comments =
+        tweet.comments.sort(
+          (a, b) =>
+            new Date(
+              b.createdAt
+            ) -
+            new Date(
+              a.createdAt
+            )
+        );
+
+        console.log(comments)
+
+      res.status(200).json({
+        comments,
+      });
+    } catch (error) {
+      console.log(error);
+
+      res.status(500).json({
+        message:
+          "Error fetching comments",
+      });
+    }
+  };
+
 tweetController.reportTweet=async (req,res)=>{
     const {id,userId}=req.body;
      console.log("reported",id,"by",userId)
