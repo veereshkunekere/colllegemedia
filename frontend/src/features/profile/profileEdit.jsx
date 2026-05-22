@@ -1,6 +1,6 @@
 /*  ProfileEdit.jsx  */
 import React, { useState, useEffect } from "react";
-import api from "../util/api";
+import api from "../../util/api";
 
 function ProfileEdit() {
   const [avatar, setAvatar] = useState(null);          // current picture URL

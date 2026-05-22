@@ -22,7 +22,9 @@ function Navbar() {
   </div>
 
   <div className="absolute left-1/2 -translate-x-1/2 flex gap-6 items-center">
+   <Link to={'/home'}>
     <HomeFilledIcon className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />
+   </Link>
     <Link to={'/chats'}>
         <ChatBubbleIcon className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />
     </Link>
@@ -40,6 +42,7 @@ function Navbar() {
 </div>
 
     )
+    
     // return ( 
     //     <div className="flex justify-between p-6 px-4 py-4 items-center w-full">
     //         <div className="p-4  flex items-center gap-4">

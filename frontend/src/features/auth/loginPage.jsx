@@ -1,8 +1,8 @@
 import React from 'react';
-import api from '../util/api';
+import api from '../../util/api';
 import { useState,useEffect } from 'react';
 import { Link, replace, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/useAuthStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 function Login() {

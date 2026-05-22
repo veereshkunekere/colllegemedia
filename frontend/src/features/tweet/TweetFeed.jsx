@@ -1,5 +1,5 @@
 // Updated TweetFeed.jsx (X-like Tweet Cards)
-import api from "../util/api";
+import api from "../../util/api";
 import { useEffect, useState } from "react";
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -63,7 +63,7 @@ function TweetFeed() {
 
     return (
         <div className="space-y-4">
-            {tweets.map((tweet) => {
+            {tweets?.map((tweet) => {
                 const isLike = tweet.likes.includes(currussr);
                 return (
                     <article key={tweet._id} className="bg-gray-900 rounded-3xl border border-gray-800 hover:bg-gray-850 transition">

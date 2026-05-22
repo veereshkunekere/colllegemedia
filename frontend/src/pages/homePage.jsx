@@ -1,6 +1,6 @@
 // pages/home.jsx
-import Chats from "./Chats";
-import TweetFeed from "./TweetFeed";
+import Chats from "../features/chat/Chats";
+import TweetFeed from "../features/tweet/TweetFeed";
 
 function Home() {
   return (

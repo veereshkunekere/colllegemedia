@@ -1,10 +1,10 @@
 import React, { useEffect, useState,useRef } from "react";
-import { chatStore } from "../store/chatStore";
+import { chatStore } from "../../store/chatStore";
 import Chats from "./Chats";
-import { useAuthStore } from "../store/useAuthStore";
-import { useCallStore } from "../store/useCallStore";
+import { useAuthStore } from "../../store/useAuthStore";
+import { useCallStore } from "../../store/useCallStore";
 import { useNavigate } from "react-router-dom";
-import api from "../util/api";
+import api from "../../util/api";
 
 const Chatpage = () => {
   const [messageText, setMessageText] = useState("");

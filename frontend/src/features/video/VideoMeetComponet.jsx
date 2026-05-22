@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, data } from 'react-router-dom';
-import { useAuthStore } from '../store/useAuthStore';
-import { useCallStore } from '../store/useCallStore';
-import { chatStore } from '../store/chatStore';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useCallStore } from '../../store/useCallStore';
+import { chatStore } from '../../store/chatStore';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import VideocamIcon from '@mui/icons-material/Videocam';

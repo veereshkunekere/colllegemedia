@@ -3,18 +3,18 @@ import { CookiesProvider } from 'react-cookie'
 import { useEffect,useState } from 'react'
 import './App.css'
 import AuthWrapper from './util/AuthWrapper'
-import Login from './pages/login'
-import Upload from './pages/upload'
-import ResetPasswordPage from './pages/resetPage'
-import Signup from './pages/Register'
-import Home from './pages/home'
-import TweetFeed from './pages/TweetFeed'
-import Tweet from './pages/Tweet'
-import VerifyEmail from './pages/VerifyEmaail'
-import ProfileEdit from './pages/profileEdit'
-import Profile from './pages/Profile'
-import Chats from './pages/Chats'
-import Chatpage from './pages/Chatpage'
+import Login from './features/auth/loginPage'
+import Upload from './features/notes/UploadPage'
+import ResetPasswordPage from './features/auth/ResetPage'
+import Signup from './features/auth/RegisterPage'
+import Home from './pages/homePage'
+import TweetFeed from './features/tweet/TweetFeed'
+import Tweet from './features/tweet/TweetPage'
+import VerifyEmail from './features/auth/VerifyEmaail'
+import ProfileEdit from './features/profile/profileEdit'
+import Profile from './features/profile/ProfilePage'
+import Chats from './features/chat/Chats'
+import Chatpage from './features/chat/ChatPage'
 import { useAuthStore } from './store/useAuthStore'
 import HomeFilledIcon from '@mui/icons-material/Home';
 import ChatBubbleIcon from '@mui/icons-material/ChatBubble';
@@ -22,8 +22,8 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import PersonIcon from '@mui/icons-material/Person';
 import SearchIcon from '@mui/icons-material/Search';
 import { Link, Outlet } from 'react-router-dom';
-import VideoMeetComponet from './pages/VideoMeetComponet'
-import IncomingCallModal from './pages/IncomingCallModal'
+import VideoMeetComponet from './features/video/VideoMeetComponet'
+import IncomingCallModal from './shared/IncomingCallModal'
 
 function Layout() {
     return (

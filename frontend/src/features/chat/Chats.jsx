@@ -1,4 +1,4 @@
-import { chatStore } from "../store/chatStore";
+import { chatStore } from "../../store/chatStore";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 

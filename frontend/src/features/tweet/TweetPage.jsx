@@ -1,5 +1,5 @@
 // Tweet.jsx
-import api from "../util/api";
+import api from "../../util/api";
 import { useState, useRef } from "react";
 
 export default function Tweet() {
