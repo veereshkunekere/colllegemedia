@@ -13,16 +13,16 @@ function TweetFeed() {
 
     useEffect(() => {
         getTweets();
+        console.log("useeffect called");
     }, []);
 
     const getTweets = async () => {
         try {
             const response = await api.get("/tweet/tweetFeed");
             console.log("called");
-            console.log(response.data.data);
-            console.log(response.data.user);
-            setTweets(response.data.data);
-            setCurrussr(response.data.user._id);
+            console.log(response);
+            setTweets(response.data.posts);
+            setCurrussr(localStorage.getItem("userId"));
         } catch (e) {
             console.log(e);
         }
@@ -31,16 +31,21 @@ function TweetFeed() {
     const like = async (id) => {
         console.log("clicked");
         try {
-            setTweets((prevTweets) => prevTweets.map((tweet) => {
-                if (tweet._id === id) {
-                    const isLiked = tweet.likes.includes(currussr);
-                    return {
-                        ...tweet,
-                        likes: isLiked ? tweet.likes.filter((user) => user != currussr) : [...tweet.likes, currussr]
-                    };
-                }
-                return tweet;
-            }));
+            setTweets((prevTweets) =>
+  prevTweets.map((tweet) => {
+    if (tweet._id === id) {
+      return {
+        ...tweet,
+        likedByUser: !tweet.likedByUser,
+        likesCount: tweet.likedByUser
+          ? tweet.likesCount - 1
+          : tweet.likesCount + 1,
+      };
+    }
+
+    return tweet;
+  })
+);
         } catch (error) {
             console.log("error", error);
         }
@@ -64,7 +69,7 @@ function TweetFeed() {
     return (
         <div className="space-y-4">
             {tweets?.map((tweet) => {
-                const isLike = tweet.likes.includes(currussr);
+                const isLike = tweet.likedByUser;
                 return (
                     <article key={tweet._id} className="bg-gray-900 rounded-3xl border border-gray-800 hover:bg-gray-850 transition">
                         {/* Tweet Header */}
@@ -94,7 +99,7 @@ function TweetFeed() {
                         {/* Tweet Content */}
                         <div className="p-4">
                             <p className="text-white text-base leading-relaxed">{tweet.content}</p>
-                            {tweet.imageUrls && (
+                            {tweet.imageUrls?.length > 0 && (
                                 <div className="mt-3">
                                     <img
                                         src={tweet.imageUrls[0]}
@@ -110,7 +115,7 @@ function TweetFeed() {
                             <div className="flex items-center space-x-4 text-gray-500">
                                 <button className="group flex items-center space-x-2 p-2 rounded-full hover:bg-gray-800 transition">
                                     <ChatBubbleOutlineIcon className="w-5 h-5 group-hover:text-blue-500" />
-                                    <span className="text-sm">{tweet.comments?.length || 0}</span>
+                                    <span className="text-sm">{tweet.commentsCount || 0}</span>
                                 </button>
                                 <button className="group flex items-center space-x-2 p-2 rounded-full hover:bg-gray-800 transition">
                                     <RepeatIcon className="w-5 h-5 group-hover:text-green-500" />
@@ -121,7 +126,7 @@ function TweetFeed() {
                                     className="group flex items-center space-x-2 p-2 rounded-full hover:bg-gray-800 transition"
                                 >
                                     {isLike ? <FavoriteIcon className="w-5 h-5 text-red-500" /> : <FavoriteBorderIcon className="w-5 h-5 group-hover:text-red-500" />}
-                                    <span className="text-sm">{tweet.likes.length}</span>
+                                    <span className="text-sm">{tweet.likescount || 0}</span>
                                 </button>
                                 <button className="group flex items-center space-x-2 p-2 rounded-full hover:bg-gray-800 transition">
                                     <VisibilityIcon className="w-5 h-5 group-hover:text-blue-500" />

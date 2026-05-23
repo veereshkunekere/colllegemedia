@@ -79,7 +79,7 @@ const Chatpage = () => {
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <div className={`hidden md:block ${selectedUser ? "md:w-80" : "md:w-96"}`}>
+      <div className={`hidden md:block ${selectedUser ? "md:w-[25%] lg:w-80" : "md:w-[30%] lg:w-96"}`}>
         <Chats />
       </div>
 

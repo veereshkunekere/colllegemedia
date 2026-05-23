@@ -16,6 +16,8 @@ export const useCommentStore =
     loading: false,
 
     activePost: null,
+
+    activeComment: null,
      
     // commentStore.js — add a clearComments action
     clearComments: () => set({ comments: [] }),

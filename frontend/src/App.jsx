@@ -52,7 +52,7 @@ function Layout() {
             {/* Main Layout */}
             <div className="flex flex-1 overflow-hidden">
                 {/* Left Sidebar */}
-                <nav className="hidden md:flex flex-col w-64 bg-black border-r border-gray-800 p-2 space-y-0.5">
+                <nav className="hidden lg:flex flex-col w-64 bg-black border-r border-gray-800 p-2 space-y-0.5">
                     {/* Logo/Brand */}
                     <Link to="/" className="flex items-center space-x-3 px-3 py-2 rounded-full hover:bg-gray-800 transition">
                         <HomeFilledIcon className="w-8 h-8 text-blue-500" />

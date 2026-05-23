@@ -41,7 +41,7 @@ export default function Tweet() {
 
         try {
             const { data } = await api.post(
-                    "/tweet",
+                    "/tweet/create",
                     formData
                 );
             console.log("Tweet posted:", data);

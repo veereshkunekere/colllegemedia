@@ -9,6 +9,7 @@ import {
 
 import {
   useEffect,
+  useRef
 } from "react";
 
 import {
@@ -18,6 +19,8 @@ import {
 import PostCard from
   "../../components/feed/PostCard";
 
+import CommentModal from "../../components/feed/CommentModal";
+
 import FeedHeader from "../../components/feed/FeedHeader"
 import TrendingChips from "../../components/feed/TrendingChips"
 import CommentsBottomSheet from "../../components/feed/commentBottomSheet";
@@ -26,6 +29,8 @@ export default function Home() {
  
   const activePost = useCommentStore((state) => state.activePost);
 const setActivePost = useCommentStore((state) => state.setActivePost);
+const BottomSheetRef= useRef(null);
+ 
   const posts =
     usePostStore(
       (state) =>
@@ -61,6 +66,11 @@ const setActivePost = useCommentStore((state) => state.setActivePost);
     fetchPosts(true);
   }, []);
 
+  useEffect(() => {
+    if (activePost) {
+      BottomSheetRef.current?.expand();
+    }
+  }, [activePost]);
 
   return (
     <View
@@ -139,11 +149,13 @@ const setActivePost = useCommentStore((state) => state.setActivePost);
         maxToRenderPerBatch={5}
         windowSize={5}        
       />
+
       <CommentsBottomSheet
-      post={activePost}
-      onClose={() => setActivePost(null)}
-     />
-  
+            BottomSheetRef={BottomSheetRef}
+            minInd="50%"
+            maxInd="80%"
+            viewModal={<CommentModal />}
+      />
     </View>
   );
 }

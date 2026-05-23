@@ -53,7 +53,7 @@ tweetController.makeAtweet = async (req, res) => {
         savedTweet.likedByUser = false;
         savedTweet.commentsCount = 0;
         console.log("Tweet saved:", savedTweet);
-
+        console.log("savedTweet",savedTweet);
         return res.status(200).json({ message: "Tweet posted", savedTweet });
 
     } catch (error) {
@@ -68,12 +68,12 @@ tweetController.getTweets=async (req,res)=>{
     try {
       const limit = 10;
 
-      const cursor = req.query.cursor;
+      const cursor = req.query?.cursor;
 
       console.log("Fetching tweets with cursor:", cursor);
       let query = {};
 
-      if (cursor) {
+      if (cursor && cursor !== "null" && cursor !== "undefined" && mongoose.Types.ObjectId.isValid(cursor)) {
         query._id = {
           $lt:
             new mongoose.Types.ObjectId(
@@ -89,6 +89,7 @@ tweetController.getTweets=async (req,res)=>{
             _id: -1,
           })
           .limit(limit);
+      
 
       const nextCursor =
         posts.length === limit
@@ -134,6 +135,7 @@ tweetController.getTweets=async (req,res)=>{
            post.imageUrls,
         
   }));
+  // console.log("Formatted posts:", formattedPosts);
 
 res.status(200).json({
   posts: formattedPosts,

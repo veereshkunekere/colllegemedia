@@ -27,6 +27,7 @@ export const useAuthStore = create((set, get) => ({
             if (response.status === 200) {
                 set({ authuser: response.data.user, isLoggingIn: false });
                 localStorage.setItem("id", response.data.user._id);
+                localStorage.setItem("token", response.data.token);
                 get().connectSocket();
                 return response;
             } else {

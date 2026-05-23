@@ -60,13 +60,9 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }} >
-      <BottomSheetModalProvider>
         <Stack screenOptions={{headerShown: false,}}>
          <Stack.Screen name="(tabs)"/>
          <Stack.Screen name="(auth)"/>
         </Stack>
-      </BottomSheetModalProvider>
-    </GestureHandlerRootView>
   );
 }
