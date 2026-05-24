@@ -83,7 +83,80 @@ const socketManager = (server) => {
             const { to } = data;
             emitToUser(to, 'call-declined', { from: userId });
        })
-        // Handle disconnect
+
+       // MARK MESSAGES SEEN
+       socket.on("markSeen",  async ({ conversationId, userId, }) => {
+
+        await MessageModel.updateMany(
+        {
+        conversationId,
+
+        receiverId:
+          userId,
+
+        seen: false,
+        },
+
+        {
+        seen: true,
+        }
+     );
+
+       emitToConversation(
+         conversationId,
+
+         "messagesSeen",
+
+         {
+          conversationId,
+         }
+        );
+  }
+);
+
+         // JOIN CONVERSATION
+
+        socket.on("joinConversation",(conversationId) => {
+             socket.join(
+                conversationId
+             );
+
+      console.log(
+        `Socket ${socket.id}
+         joined
+         ${conversationId}`
+      );
+    }
+  );
+
+  // LEAVE CONVERSATION
+
+        socket.on("leaveConversation",(conversationId) => {
+               socket.leave(
+                 conversationId
+           );
+        });
+
+        // TYPING INDICATOR
+        socket.on("typingStart",({ conversationId, userId, }) => {
+            socket.to(conversationId).emit( "userTyping",
+           {
+              userId,
+            }
+        );
+        });
+
+        // TYPING STOP INDICATOR
+        socket.on("typingStop",({ conversationId, userId, }) => {
+            socket.to(conversationId).emit( "userTypingStop",
+           {
+              userId,
+            }
+        );
+        });
+        
+
+   // Handle disconnect
         socket.on('disconnect', (reason) => {
             console.log(`User ${userId} socket disconnected (reason: ${reason})`);
             userData.sockets = userData.sockets.filter((s) => s.id !== socket.id);
@@ -99,8 +172,8 @@ const socketManager = (server) => {
                 }, 5000);
             }
         });
-    });
 
+});
     return io;
 };
 
@@ -120,7 +193,10 @@ const emitToUser = (userId, event, data) => {
     }
 };
 
+const emitToConversation =( conversationId, event, data) => { io.to(conversationId).emit(event, data);};
+
 module.exports = socketManager;
 module.exports.getOnlineUserSocket = getOnlineUserSocket;
 module.exports.emitToUser = emitToUser;
 module.exports.onlineUsers = onlineUsers;
+module.exports.emitToConversation = emitToConversation;

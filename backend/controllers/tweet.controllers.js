@@ -264,7 +264,6 @@ tweetController.getComments =async (req, res) => {
     try {
       const { tweetId } =
         req.params;
-
       const tweet =
         await Tweet.findById(
           tweetId

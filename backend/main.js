@@ -12,7 +12,7 @@ const tweetRoute=require("./routers/tweet.router");
 const uploadRoute=require("./routers/upload.router");
 const adminRoute=require("./routers/admin.router");
 const messageRoute=require("./routers/messages.router");
-
+const conversationRoute=require("./routers/conversation.router");
 
 const socketManager=require('./controllers/socketManager');
 const { meta } = require('./util/nodemailer');
@@ -23,7 +23,7 @@ const originLink=process.env.NODE_ENV==="production" ? "https://colllegemedia-fr
 console.log("CORS Origin Link:", originLink);
 app.use(cors({
     // origin:"http://localhost:5173", // Replace with your frontend URL in development
-    origin: true, // Replace with your frontend URL
+    origin: "*", // Replace with your frontend URL
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true, // Allow cookies to be sent with requests
 }));
@@ -37,7 +37,8 @@ const mounts = [
     { path: "/api/tweet", router: tweetRoute },
     { path: "/api/upload", router: uploadRoute },
     { path: "/api/auth", router: authRoute },
-    { path: "/api/messages", router: messageRoute },
+    // { path: "/api/messages", router: messageRoute },  //This route is for non encrypted messages 
+    {path:"/api/messages" , router:conversationRoute}
 ];
 
 for (const m of mounts) {
@@ -63,7 +64,7 @@ const db=async ()=>{
    }
 }
 
-server.listen(port,(req,res)=>{
+server.listen(port,'0.0.0.0',(req,res)=>{
     console.log(`Server is running on http://localhost:${port}`);
     db();
 })

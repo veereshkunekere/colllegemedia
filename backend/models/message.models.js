@@ -2,6 +2,11 @@ const mongoose=require("mongoose");
 const bcrypt=require("bcryptjs");
 
 const MessageSchema=new mongoose.Schema({
+    conversationId:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"conversation",
+        required:true
+    },
     senderId:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"user",
@@ -12,11 +17,40 @@ const MessageSchema=new mongoose.Schema({
         ref:"user",
         required:true
     },
-    text:{
+    cipherText:{
+        type:String,
+        required:true
+    },
+    RatchetsessionId:{
+        type:String,
+        // required:true
+    },
+    encyptionVersion:{
+        type:Number,
+        default:1
+    },
+    messageType:{
+        type:String,
+        enum:["text","image","video","file"],
+        default:"text"
+    },
+    image:{
         type:String,
     },
-   
+    seen:{
+        type:Boolean,
+        default:false
+    },
+    messageNumber:{
+        type:Number,
+        required:true
+    },
+    previousChainLength:{
+        type:Number,
+        required:true
+    }
 },{timestamps:true});
 
+MessageSchema.index({ conversationId: 1, createdAt: -1 }); 
 const MessageModel=mongoose.model("message",MessageSchema);
 module.exports=MessageModel;
