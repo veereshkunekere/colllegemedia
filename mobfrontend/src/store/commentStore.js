@@ -21,9 +21,9 @@ export const useCommentStore =
     clearComments: () => set({ comments: [] }),
 
     setActivePost: (post) => {
-  set({
-    activePost: post,
-  });
+         set({
+            activePost: post,
+         });
 },
 
     loadComments:
@@ -38,7 +38,6 @@ export const useCommentStore =
             await fetchComments(
               tweetId
             );
-
           set({
             comments:
               data.comments,

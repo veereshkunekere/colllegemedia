@@ -36,7 +36,6 @@ export const useAuthStore =
             email,
             password
           );
-          console.log(data);
 
         await saveToken(
           data.token

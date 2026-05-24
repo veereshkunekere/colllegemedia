@@ -20,6 +20,7 @@ import {
 } from "@gorhom/bottom-sheet";
 
 import {GestureHandlerRootView} from "react-native-gesture-handler";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function RootLayout() {
   const checkAuth =
@@ -60,13 +61,11 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }} >
-      <BottomSheetModalProvider>
-        <Stack screenOptions={{headerShown: false,}}>
+        <SafeAreaView style={{flex: 1, backgroundColor: "#050505"}}>
+          <Stack screenOptions={{headerShown: false,}}>
          <Stack.Screen name="(tabs)"/>
          <Stack.Screen name="(auth)"/>
         </Stack>
-      </BottomSheetModalProvider>
-    </GestureHandlerRootView>
+        </SafeAreaView>
   );
 }

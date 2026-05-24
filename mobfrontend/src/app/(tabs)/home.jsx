@@ -20,12 +20,10 @@ import PostCard from
 
 import FeedHeader from "../../components/feed/FeedHeader"
 import TrendingChips from "../../components/feed/TrendingChips"
-import CommentsBottomSheet from "../../components/feed/commentBottomSheet";
 import { useCommentStore } from "../../store/commentStore";
 export default function Home() {
  
-  const activePost = useCommentStore((state) => state.activePost);
-const setActivePost = useCommentStore((state) => state.setActivePost);
+
   const posts =
     usePostStore(
       (state) =>
@@ -139,10 +137,7 @@ const setActivePost = useCommentStore((state) => state.setActivePost);
         maxToRenderPerBatch={5}
         windowSize={5}        
       />
-      <CommentsBottomSheet
-      post={activePost}
-      onClose={() => setActivePost(null)}
-     />
+      
   
     </View>
   );

@@ -10,10 +10,7 @@ import ImageViewing from "react-native-image-viewing";
 import { Ionicons } from "@expo/vector-icons";
 import {formatTimeAgo} from "../../utils/formatTime";
 import {usePostStore} from "../../store/postStore";
-import {
-  useCommentStore,
-} from "../../store/commentStore";
-
+import { useCommentSheet } from "../../contexts/CommentSheetProvider";
 export default function PostCard({ post }) {
   const isAnonymous = post.isAnonymous;
   const [visible,setVisible,] = useState(false);
@@ -22,11 +19,8 @@ export default function PostCard({ post }) {
       state.toggleLike
   );
 
-  const setActivePost =
-  useCommentStore(
-    (state) =>
-      state.setActivePost
-  );
+  const { openComments } = useCommentSheet();
+ 
 
   return (
     <View
@@ -164,10 +158,7 @@ export default function PostCard({ post }) {
 
 <TouchableOpacity
   style={styles.actionBtn}
-  onPress={() =>
-    setActivePost(post)
-    // console.log("Open comments for", post._id)
-  }
+  onPress={() => openComments(post)}
 >
   <Ionicons
     name="chatbubble-outline"

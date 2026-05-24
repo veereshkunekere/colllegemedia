@@ -6,7 +6,7 @@ import {
 
 const API = axios.create({
   baseURL:
-    "http://192.168.31.184:3000/api",
+  "https://colllegemedia.onrender.com/api",
 
   headers: {
     "Content-Type":
