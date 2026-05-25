@@ -3,7 +3,6 @@ const { Server } = require('socket.io');
 const MessageModel = require("../models/message.models");
 const onlineUsers = new Map(); // userId => { sockets: [], timeout: null }
 const jwt = require("jsonwebtoken");
-const MessageModel = require("../models/message.models");
 const socketManager = (server) => {
     const io = new Server(server, {
         cors: {
