@@ -5,8 +5,7 @@ import {
 } from "../utils/storage";
 
 const API = axios.create({
-  baseURL:
-  "https://colllegemedia.onrender.com/api",
+  baseURL: "https://colllegemedia.onrender.com/api",
 
   headers: {
     "Content-Type":

@@ -2,7 +2,7 @@ import API from "./api";
 
 export const getMessages = async (conversationId) => {
     try {
-      const response = await API.get(`/messages/getChats/${recieverId}`);
+      const response = await API.get(`/messages/getChats/${conversationId}`);
       return response.data;
     } catch (error) {
       console.error("Error fetching messages:", error);

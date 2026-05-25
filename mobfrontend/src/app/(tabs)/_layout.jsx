@@ -16,7 +16,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="home" />
-      <Tabs.Screen name="message" />
+      <Tabs.Screen name="chat" />
       <Tabs.Screen name="create"/>
       <Tabs.Screen name="profile" />
     </Tabs>

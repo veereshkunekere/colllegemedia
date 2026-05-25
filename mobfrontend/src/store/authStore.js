@@ -12,6 +12,8 @@ import {
   removeToken,
 } from "../utils/storage";
 
+import {useChatStore} from "../store/chatStore"
+
 export const useAuthStore =
   create((set) => ({
     user: null,
@@ -41,10 +43,14 @@ export const useAuthStore =
           data.token
         );
 
+        console.log("token is",data.token);
+
         set({
           user: data.user,
           token: data.token,
         });
+
+        useChatStore.getState().connectRealtime({token: data.token});
 
         return {
           success: true,
@@ -83,8 +89,7 @@ export const useAuthStore =
 
     checkAuth: async () => {
       try {
-        const storedToken =
-          await getToken();
+        const storedToken = await getToken();
 
         if (!storedToken) {
           set({
@@ -95,14 +100,15 @@ export const useAuthStore =
           return;
         }
 
-        const data =
-          await verifyToken();
+        const data = await verifyToken();
 
         set({
           user: data.user,
           token:
             storedToken,
         });
+
+        useChatStore.getState().connectRealtime({token: storedToken});
       } catch (error) {
         await removeToken();
 
