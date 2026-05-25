@@ -189,8 +189,6 @@ messagesControllers.sendMessage = async (req, res) => {
       const {
         conversationId,
 
-        receiverId,
-
         cipherText,
 
         sessionId,
@@ -202,7 +200,6 @@ messagesControllers.sendMessage = async (req, res) => {
 
       if (
         !conversationId ||
-        !receiverId ||
         !cipherText
       ) {
         return res
@@ -227,6 +224,11 @@ messagesControllers.sendMessage = async (req, res) => {
           });
       }
 
+      const receiverId = conversation.participants.find(
+                             (id) =>
+                             id.toString() !==
+                             senderId.toString()
+                            );
       // CREATE MESSAGE
 
       const newMessage = new MessageModel(
