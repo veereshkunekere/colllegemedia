@@ -3,8 +3,9 @@ const { Server } = require('socket.io');
 const MessageModel = require("../models/message.models");
 const onlineUsers = new Map(); // userId => { sockets: [], timeout: null }
 const jwt = require("jsonwebtoken");
+let io;
 const socketManager = (server) => {
-    const io = new Server(server, {
+    io = new Server(server, {
         cors: {
             origin: ["https://colllegemedia-froontend.onrender.com",
       "https://colllegemedia-frontend.onrender.com",
