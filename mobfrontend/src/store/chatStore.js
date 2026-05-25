@@ -8,6 +8,8 @@ import {
   connectSocket,
   getSocket,
 } from "../services/socket";
+import { useAuthStore } from "./authStore";
+
 
 export const useChatStore =
   create((set, get) => ({
@@ -24,15 +26,17 @@ export const useChatStore =
     
     onlineUsers: [],
 
+    currentUserId:null,
 
 
     // CONNECT SOCKET
 
-    connectRealtime:({token}) => {
+    connectRealtime:({token , userId}) => {
 
         if ( get().socketConnected) {
            return;
        }
+         set({currentUserId:userId});
 
         const socket = connectSocket({token});
         socket.off("connect");
@@ -64,18 +68,9 @@ export const useChatStore =
         // NEW MESSAGE
 
         socket.on("newMessage", ( message ) => {
+          if ( message.conversationId !== get().activeConversation ) return;
+           if(message.senderId !== get().currentUserId) socket.emit( "messageDelivered", { messageId: message._id, });
             const current = get().activeConversation;
-            if (  String(current) === String(message.conversationId ) ) {
-              set( ( state ) => ({
-                  messages:
-                    [
-                      ...state.messages,
-
-                      message,
-                    ],
-                })
-              );
-            }
             set((state) => {
                 const exists =
                 state.messages.some(
@@ -98,6 +93,43 @@ export const useChatStore =
           });
           }
         );
+
+        socket.on("messageDelivered", ({ messageId }) => {
+
+               set((state) => ({
+
+                messages:
+                 state.messages.map(
+                  (msg)=>
+
+                   msg._id === messageId
+                    ? {
+                                   ...msg,
+                        status:
+                         "delivered",
+                      }
+                    : msg
+                 ),
+              }));
+            }
+           );
+
+       socket.on( "messagesSeen", ({ conversationId }) => {
+
+             const currentUserId = get().currentUserId;
+
+             set((state) => ({
+
+                messages : state.messages.map( (msg) =>
+                   msg.conversationId === conversationId &&
+                    msg.senderId === currentUserId ? {
+                                         ...msg,
+                                         status: "seen",
+                                    } : msg
+                ),
+             }));
+  }
+);
       },
 
 
@@ -112,6 +144,7 @@ export const useChatStore =
               "/messages/conversations"
             );
 
+            console.log("result is",res.data.messages)
           set({
             conversations:
               res.data
@@ -135,6 +168,7 @@ export const useChatStore =
         conversationId
       ) => {
 
+        console.log("selected conversationId",conversationId);
         set({
           activeConversation:
             conversationId,
@@ -170,7 +204,7 @@ export const useChatStore =
             await API.get(
               `/messages/${conversationId}`
             );
-
+          // console.log("result of loadMessages",res.data.messages);
           set({
             messages:
               res.data
@@ -242,24 +276,37 @@ export const useChatStore =
 
       // REPLACE TEMP
 
-      set((state) => ({
-        messages:
-          state.messages.map(
-            (msg) =>
-              msg._id ===
-              payload.clientTempId
-                ? {
-                    ...realMessage,
+     set((state) => {
 
-                    decryptedText:
-                      payload.cipherText,
+ const withoutTemp =
+   state.messages.filter(
+    (msg)=>
+      msg._id !==
+      payload.clientTempId
+   );
 
-                    status:
-                      "sent",
-                  }
-                : msg
-          ),
-      }));
+ const exists =
+   withoutTemp.some(
+    (msg)=>
+      msg._id ===
+      realMessage._id
+   );
+
+ return {
+   messages:
+    exists
+     ? withoutTemp
+     : [
+         ...withoutTemp,
+         {
+           ...realMessage,
+           decryptedText:
+            payload.cipherText,
+           status:"sent",
+         }
+       ]
+ };
+});
 
     } catch (error) {
 
