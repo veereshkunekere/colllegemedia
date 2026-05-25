@@ -1,6 +1,7 @@
 const { get } = require('http');
 const { Server } = require('socket.io');
 const MessageModel = require("../models/message.models");
+const ConversationModel = require("../models/conversation.models");
 const onlineUsers = new Map(); // userId => { sockets: [], timeout: null }
 const jwt = require("jsonwebtoken");
 let io;
@@ -133,7 +134,7 @@ const socketManager = (server) => {
        })
 
        // MARK MESSAGES SEEN
-       socket.on("markSeen",  async ({ conversationId, userId, }) => {
+       socket.on("markSeen",  async ({ conversationId}) => {
 
         await MessageModel.updateMany(
         {
@@ -159,6 +160,7 @@ const socketManager = (server) => {
 
          {
           conversationId,
+          userId: socket.userId
          }
         );
   }
@@ -166,8 +168,16 @@ const socketManager = (server) => {
 
          // JOIN CONVERSATION
 
-        socket.on("joinConversation",(conversationId) => {
-             socket.join(
+        socket.on("joinConversation",async (conversationId) => {
+          try{
+             const exists = await ConversationModel.findOne({
+                                  _id: conversationId,
+                                  participants: socket.userId,
+                                });
+
+           if (!exists) return;
+            
+           socket.join(
                 conversationId
              );
 
@@ -176,6 +186,9 @@ const socketManager = (server) => {
          joined
          ${conversationId}`
       );
+          }catch(error){
+            console.log("join conversation error",error);
+          }
     }
   );
 
@@ -188,10 +201,10 @@ const socketManager = (server) => {
         });
 
         // TYPING INDICATOR
-        socket.on("typingStart",({ conversationId, userId, }) => {
+        socket.on("typingStart",({ conversationId}) => {
             socket.to(conversationId).emit( "userTyping",
            {
-              userId,
+              userId:socket.userId,
             }
         );
         });

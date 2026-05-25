@@ -262,9 +262,9 @@ messagesControllers.sendMessage = async (req, res) => {
 
       // UNREAD COUNT
 
-      const currentUnread = conversation.unreadCounts.get( receiverId ) || 0;
+      const currentUnread = conversation.unreadCounts.get( receiverId.toString() ) || 0;
 
-      conversation.unreadCounts.set( receiverId, currentUnread + 1 );
+      conversation.unreadCounts.set( receiverId.toString(), currentUnread + 1 );
 
       await conversation.save();
 

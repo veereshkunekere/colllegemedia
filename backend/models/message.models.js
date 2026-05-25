@@ -21,7 +21,7 @@ const MessageSchema=new mongoose.Schema({
         type:String,
         required:true
     },
-    RatchetsessionId:{
+    sessionId:{
         type:String,
         // required:true
     },
