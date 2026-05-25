@@ -37,8 +37,8 @@ const mounts = [
     { path: "/api/tweet", router: tweetRoute },
     { path: "/api/upload", router: uploadRoute },
     { path: "/api/auth", router: authRoute },
-    // { path: "/api/messages", router: messageRoute },  //This route is for non encrypted messages 
-    {path:"/api/messages" , router:conversationRoute}
+    { path: "/api/messages" , router:conversationRoute},
+    { path: "/api/messages", router: messageRoute },  //This route is for non encrypted messages 
 ];
 
 for (const m of mounts) {
