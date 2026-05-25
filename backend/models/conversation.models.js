@@ -9,7 +9,7 @@ const ConversationSchema =
           type:
             mongoose.Schema.Types.ObjectId,
 
-          ref: "user",
+          ref: "User",
 
           required: true,
         },
@@ -25,7 +25,7 @@ const ConversationSchema =
         type:
           mongoose.Schema.Types.ObjectId,
 
-        ref: "user",
+        ref: "User",
       },
 
       lastMessageAt: {

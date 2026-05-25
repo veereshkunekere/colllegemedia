@@ -2,7 +2,7 @@ const { get } = require('http');
 const { Server } = require('socket.io');
 const MessageModel = require("../models/message.models");
 const onlineUsers = new Map(); // userId => { sockets: [], timeout: null }
-
+const jwt = require("jsonwebtoken");
 const socketManager = (server) => {
     const io = new Server(server, {
         cors: {
@@ -18,8 +18,54 @@ const socketManager = (server) => {
 
     console.log('Socket.IO server initialized');
 
+    io.use( async ( socket, next ) => {
+      try {
+
+      const token =
+        socket.handshake
+          .auth.token;
+
+      if (!token) {
+        return next(
+          new Error(
+            "Unauthorized"
+          )
+        );
+      }
+
+      const decoded =
+        jwt.verify(
+          token,
+          process.env
+            .JWT_SECRET
+        );
+
+      socket.userId =
+        decoded.id;
+
+      next();
+
+    } catch (
+      error
+    ) {
+
+      console.log(
+        "socket auth error",
+        error
+      );
+
+      next(
+        new Error(
+          "Unauthorized"
+        )
+      );
+    }
+  }
+);
+
+
     io.on('connection', (socket) => {
-        const userId = socket.handshake.query.userId?.toString();
+        const userId = socket.userId;;
         console.log(`✅ User connected: socketId = ${socket.id}, userId = ${userId}`);
 
         if (!userId) {

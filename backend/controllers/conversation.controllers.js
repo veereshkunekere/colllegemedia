@@ -16,8 +16,7 @@ const conversationControllers =
 
 conversationControllers.createOrGetConversation = async (req, res) => {
     try {
-      const myId =
-        req.user;
+      const myId = req.user;
 
       const {
         receiverId,
@@ -124,8 +123,7 @@ conversationControllers.createOrGetConversation = async (req, res) => {
 
 conversationControllers.getConversations = async (req, res) => {
     try {
-      const myId =
-        req.user;
+      const myId = req.user;
 
       const conversations = await ConversationModel.find(
           {
