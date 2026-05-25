@@ -45,6 +45,14 @@ const MessageSchema=new mongoose.Schema({
         type:Number,
         required:true
     },
+    delivered: {
+        type: Boolean,
+        default: false,
+    },
+
+    deliveredAt: Date,
+
+    seenAt: Date,
     previousChainLength:{
         type:Number,
         required:true

@@ -139,14 +139,16 @@ const socketManager = (server) => {
         {
         conversationId,
 
-        receiverId:
-          userId,
+        senderId:{
+          $ne:socket.userId
+        },
 
         seen: false,
         },
 
         {
         seen: true,
+        seenAt:new Date(),
         }
      );
 
@@ -202,6 +204,33 @@ const socketManager = (server) => {
             }
         );
         });
+
+        socket.on("messageDelivered", async ({ messageId }) => {
+
+           const updated = await MessageModel.findByIdAndUpdate(
+                                                messageId,
+                                              {
+                                                delivered: true,
+                                                deliveredAt:
+                                                  new Date(),
+                                              },
+                                              { new: true }
+                                            );
+
+           if (!updated) return;
+
+           emitToConversation(
+           updated.conversationId,
+
+           "messageDelivered",
+
+           {
+             messageId:
+               updated._id,
+           }
+         );
+       }
+      );
         
 
    // Handle disconnect
@@ -221,7 +250,9 @@ const socketManager = (server) => {
             }
         });
 
-});
+    
+
+      });
     return io;
 };
 
