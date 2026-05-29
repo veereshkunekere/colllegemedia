@@ -77,7 +77,7 @@ console.log(
  keys
 );
 
-        useChatStore.getState().connectRealtime({token: data.token});
+        useChatStore.getState().connectRealtime({token: data.token,userId:data.user._id});
 
         return {
           success: true,
@@ -155,7 +155,7 @@ console.log(
  keys
 );
 
-        useChatStore.getState().connectRealtime({token: storedToken});
+        useChatStore.getState().connectRealtime({token: storedToken,userId:data.user._id});
       } catch (error) {
         await removeToken();
 

@@ -8,8 +8,12 @@ import {
   connectSocket,
   getSocket,
 } from "../services/socket";
+
+import * as SecureStore
+ from "expo-secure-store";
 import { useAuthStore } from "./authStore";
-import { getIdentityKeys,deriveSharedSecret,encryptMessage,decryptMessage } from "../services/cryptoService";
+import { getIdentityKeys,deriveSharedSecret,encryptMessage,decryptMessage,deriveRootKey,deriveInitialChainKeys,deriveMessageKey,advanceChainKey, } from "../services/cryptoService";
+import {getSharedSecret,saveSharedSecret,getRootKey,saveRootKey,saveChainKeys,getChainKeys,loadSession,getMessageNumbers,saveMessageNumbers} from "../services/sessionServive"
 import axios from "axios";
 
 
@@ -57,6 +61,8 @@ export const useChatStore =
             }
         );
 
+        socket.userId = userId;
+
         socket.on( "connect",() => {
           console.log("socket connected",socket.id);
             set({
@@ -75,12 +81,71 @@ export const useChatStore =
 
         // NEW MESSAGE
 
-        socket.on("newMessage", ( message ) => {
+        socket.on("newMessage", async ( message ) => {
+          console.log(
+ "RECEIVE NUMBER",
+ message.messageNumber
+);
           console.log("new msg received",message);
-          if ( message.conversationId !== get().activeConversation?._id ) return;
+          console.log(get().activeConversation);
+          console.log("currentUserId",socket.userId)
+  // Ignore my own message
+          if ( message.conversationId !== get().activeConversation ) return;
+          if ( message.senderId === socket.userId) {
+              return;
+           }
           console.log("msg is for me only");
            if(message.senderId !== get().currentUserId) socket.emit( "messageDelivered", { messageId: message._id, });
-            const current = get().activeConversation;
+            
+            const { sendChainKey, receiveChainKey} = await getChainKeys(message.conversationId);
+            const messageKey = deriveMessageKey( receiveChainKey);
+            console.log("RECIEVE CHAIN", receiveChainKey);
+            console.log("MESSAGE KEY", messageKey);
+            const {
+  sendMessageNumber,
+  receiveMessageNumber
+} = await getMessageNumbers(
+  message.conversationId
+);
+console.log(
+ "incoming",
+ message.messageNumber
+);
+
+console.log(
+ "last received",
+ receiveMessageNumber
+);
+              if (
+ message.messageNumber <
+ receiveMessageNumber
+){
+ console.log(
+  "duplicate message"
+ );
+ return;
+}
+              const plaintext = decryptMessage(
+                                 message.cipherText,
+                                 message.nonce,
+                                 messageKey
+                                );
+
+              console.log("plaintxt",plaintext);
+
+              await saveMessageNumbers(
+  message.conversationId,
+  sendMessageNumber,
+  message.messageNumber
+);
+
+                const nextReceiveChain = advanceChainKey(receiveChainKey);
+
+                await saveChainKeys(
+                        message.conversationId,
+                        sendChainKey,
+                        nextReceiveChain
+                      );
             set((state) => {
                 const exists =
                 state.messages.some(
@@ -92,17 +157,8 @@ export const useChatStore =
               if (exists) {
                 return state;
               }
-
-              const plaintext = decryptMessage(
-  message.cipherText,
-  message.nonce,
-  get().sharedSecret
-);
-
-console.log("plaintxt",plaintext);
-
-message.plaintext = plaintext;
-console.log(message.plaintext);
+              message.plaintext = plaintext;
+              console.log(message.plaintext);
               return {
                 messages: [
                   ...state.messages,
@@ -186,23 +242,66 @@ console.log(message.plaintext);
     // OPEN CHAT
 
     openConversation:  async ( conversationId ,myId ) => {
-        
+//         await SecureStore.deleteItemAsync(`sharedSecret_${conversationId}`);
+// await SecureStore.deleteItemAsync(`rootKey_${conversationId}`);
+// await SecureStore.deleteItemAsync(`chainKeys_${conversationId}`);
         console.log("selected conversationId",conversationId);
+        const nums = await getMessageNumbers( conversationId);
+
+console.log(
+ "MESSAGE NUMBERS",
+ nums
+);
         const myKeys = await getIdentityKeys(myId);
         const conversation =  get().activeConversation;
         console.log(conversation);
         const receiverId = conversation.participants.find(p => String(p._id) !== String(myId));
         const res = await API.get(`/user/public-key/${receiverId._id}`);
 
-const sharedSecret =
- deriveSharedSecret(
+       let sharedSecret = await getSharedSecret(conversationId);
 
-  myKeys.privateKey,
+if(!sharedSecret){
 
-  res.data.publicKey
+  sharedSecret =
+   deriveSharedSecret(
+    myKeys.privateKey,
+    res.data.publicKey
+   );
 
- );
+  await saveSharedSecret(
+    conversationId,
+    sharedSecret
+  );
+}
 
+            let rootKey = await getRootKey( conversationId );
+
+            if(!rootKey){
+
+            rootKey = deriveRootKey( sharedSecret);
+
+            await saveRootKey( conversationId, rootKey);
+            let chain = deriveInitialChainKeys( rootKey );
+            let sendChainKey = chain.sendChainKey;
+            let receiveChainKey = chain.receiveChainKey;
+            if(String(myId) !== String(conversation.createdBy)){
+                const temp = sendChainKey;
+                sendChainKey = receiveChainKey; 
+                receiveChainKey = temp;
+            }
+             await saveChainKeys( conversationId, sendChainKey, receiveChainKey );
+
+            }
+console.log(
+ "ROOT KEY",
+ rootKey
+);
+
+console.log(
+ await getChainKeys(
+  conversationId
+ )
+);
  set({sharedSecret});
 
         set({
@@ -264,7 +363,6 @@ console.log(
             await API.get(
               `/messages/${conversationId}`
             );
-          // console.log("result of loadMessages",res.data.messages);
           set({
             messages:
               res.data
@@ -288,8 +386,22 @@ console.log(
 
     console.log("payload",payload);
     
+    const { sendChainKey, receiveChainKey} = await getChainKeys(payload.conversationId);
 
-    const encrypted = encryptMessage(payload.cipherText,get().sharedSecret);
+    const messageKey =deriveMessageKey(sendChainKey);
+
+    console.log("SEND CHAIN", sendChainKey);
+    console.log("MESSAGE KEY", messageKey);
+    const { sendMessageNumber, receiveMessageNumber} = await getMessageNumbers( payload.conversationId);
+    const encrypted = encryptMessage(payload.cipherText,messageKey);
+
+    const nextSendChain = advanceChainKey(sendChainKey);
+
+    await saveChainKeys(
+     payload.conversationId,
+     nextSendChain,
+      receiveChainKey
+      );
 
     const optimisticMessage = {
 
@@ -311,6 +423,8 @@ console.log(
 
       optimistic: true,
 
+      messageNumber:sendMessageNumber,
+
       createdAt:
         new Date(),
     };
@@ -331,7 +445,7 @@ console.log(
 
     try {
 
-      const finalPayload = {...payload,cipherText: encrypted.cipherText, nonce: encrypted.nonce,};
+      const finalPayload = {...payload,cipherText: encrypted.cipherText, nonce: encrypted.nonce,messageNumber:sendMessageNumber};
 
       const res =
         await API.post(
@@ -342,6 +456,17 @@ console.log(
 
       const realMessage =
         res.data.newMessage;
+
+       console.log(
+ "SEND NUMBER",
+ sendMessageNumber
+);
+      console.log( await getChainKeys(payload.conversationId));
+      await saveMessageNumbers(  payload.conversationId,  sendMessageNumber + 1,  Math.max(
+    receiveMessageNumber,
+    message.messageNumber
+  )
+);
 
       // REPLACE TEMP
 
