@@ -9,7 +9,7 @@ Router.get("/profile",auth,userController.getProfile);
 Router.put("/profile/edit", upload.single('image') ,auth,userController.EditProfile);
 Router.put(
   "/public-key",
-  verifyToken,
+  auth,
   userController.updatePublicKey
 );
 
