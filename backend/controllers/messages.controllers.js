@@ -199,9 +199,10 @@ messagesControllers.sendMessage = async (req, res) => {
         nonce
       } = req.body;
 
+      console.log(nonce);
       if (
         !conversationId ||
-        !cipherText
+        !cipherText 
       ) {
         return res
           .status(400)
@@ -252,6 +253,7 @@ messagesControllers.sendMessage = async (req, res) => {
         );
 
       await newMessage.save();
+      console.log(newMessage);
 
       // UPDATE
       // CONVERSATION
