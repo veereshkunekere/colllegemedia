@@ -53,23 +53,35 @@ userController.EditProfile=async (req, res) => {
     }
 }
 
-exports.updatePublicKey = async (
+userController.updatePublicKey = async (
   req,
   res
 ) => {
 
-  const userId = req.user;
+  try {
 
-  const { publicKey } = req.body;
+    const userId = req.user;
 
-  await User.findByIdAndUpdate(
-    userId,
-    { publicKey }
-  );
+    const { publicKey } = req.body;
 
-  return res.json({
-    message:
-      "Public key updated",
-  });
+    await User.findByIdAndUpdate(
+      userId,
+      { publicKey }
+    );
+
+    return res.json({
+      message: "Public key updated"
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    return res.status(500).json({
+      error: "Internal server error"
+    });
+  }
 };
+
+console.log(userController.updatePublicKey);
 module.exports=userController;
