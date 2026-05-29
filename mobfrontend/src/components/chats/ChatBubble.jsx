@@ -25,7 +25,7 @@ ChatBubble({
         style={styles.text}
       >
         {
-          message.cipherText ||
+          message.plaintext ||
           "Encrypted message"
         }
       </Text>

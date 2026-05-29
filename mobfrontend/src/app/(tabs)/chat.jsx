@@ -27,6 +27,8 @@ import ConversationCard
 
 export default function Chats() {
 
+  const {selectActiveConv} =useChatStore();
+
   const router =
     useRouter();
 
@@ -47,6 +49,11 @@ export default function Chats() {
       (state) =>
         state.user
     );
+  
+    const handleConvSelection = (item) =>{
+         selectActiveConv(item);
+         router.push(`chat/${item._id}`);
+    }
 
   useEffect(() => {
     loadConversations();
@@ -80,11 +87,7 @@ export default function Chats() {
               currentUser?._id
             }
 
-            onPress={() =>
-              router.push(
-                `/chat/${item._id}`
-              )
-            }
+            onPress={()=> handleConvSelection(item)}
           />
         )}
 

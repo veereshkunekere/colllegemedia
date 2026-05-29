@@ -196,6 +196,7 @@ messagesControllers.sendMessage = async (req, res) => {
         messageNumber,
 
         previousChainLength,
+        nonce
       } = req.body;
 
       if (
@@ -246,6 +247,7 @@ messagesControllers.sendMessage = async (req, res) => {
             messageNumber,
 
             previousChainLength,
+            nonce
           }
         );
 

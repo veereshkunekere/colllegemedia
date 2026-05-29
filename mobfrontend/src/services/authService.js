@@ -78,3 +78,16 @@ export const logoutUser =
       );
     }
   };
+
+export const updatePublicKey =
+ async (publicKey) => {
+
+  const res =
+   await API.put(
+    "/user/public-key",
+    { publicKey }
+   );
+
+   console.log("res for pubKey change",res.data);
+  return res.data;
+};

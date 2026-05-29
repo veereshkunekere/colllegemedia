@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import API from "../services/api";
 
 import {
   loginUser,
@@ -14,8 +15,19 @@ import {
 
 import {useChatStore} from "../store/chatStore"
 
+import {
+ ensureIdentityKeys
+}
+from "../services/cryptoService";
+
+import {
+ updatePublicKey
+}
+from "../services/authService";
+
+import {deleteKeys} from "../services/sessionServive"
 export const useAuthStore =
-  create((set) => ({
+  create((set,get) => ({
     user: null,
 
     token: null,
@@ -49,6 +61,21 @@ export const useAuthStore =
           user: data.user,
           token: data.token,
         });
+        console.log(data);
+        console.log(get().user);
+
+        const keys = await ensureIdentityKeys(data.user._id);
+
+await updatePublicKey(
+ keys.publicKey
+);
+
+
+
+console.log(
+ "Identity keys ready",
+ keys
+);
 
         useChatStore.getState().connectRealtime({token: data.token});
 
@@ -91,6 +118,7 @@ export const useAuthStore =
       try {
         const storedToken = await getToken();
 
+
         if (!storedToken) {
           set({
             isCheckingAuth:
@@ -107,6 +135,25 @@ export const useAuthStore =
           token:
             storedToken,
         });
+                
+        // await deleteKeys(data.user._id);
+        // get().logout();
+        // return;
+        
+
+        const keys =
+ await ensureIdentityKeys(
+  data.user._id
+ );
+
+ const res =await updatePublicKey(
+  keys.publicKey
+);
+console.log("res for update of pubKey",res);
+console.log(
+ "keys are",
+ keys
+);
 
         useChatStore.getState().connectRealtime({token: storedToken});
       } catch (error) {

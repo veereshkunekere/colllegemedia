@@ -45,6 +45,10 @@ const MessageSchema=new mongoose.Schema({
         type:Number,
         required:true
     },
+    nonce:{
+        type:String,
+        required:true
+    },
     delivered: {
         type: Boolean,
         default: false,

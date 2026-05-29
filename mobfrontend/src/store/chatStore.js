@@ -9,6 +9,8 @@ import {
   getSocket,
 } from "../services/socket";
 import { useAuthStore } from "./authStore";
+import { getIdentityKeys,deriveSharedSecret,encryptMessage,decryptMessage } from "../services/cryptoService";
+import axios from "axios";
 
 
 export const useChatStore =
@@ -28,8 +30,14 @@ export const useChatStore =
 
     currentUserId:null,
 
+    sharedSecret: null,
+
 
     // CONNECT SOCKET
+
+    selectActiveConv:(conversation) => {
+        set({activeConversation:conversation});
+    },
 
     connectRealtime:({token , userId}) => {
 
@@ -68,7 +76,9 @@ export const useChatStore =
         // NEW MESSAGE
 
         socket.on("newMessage", ( message ) => {
-          if ( message.conversationId !== get().activeConversation ) return;
+          console.log("new msg received",message);
+          if ( message.conversationId !== get().activeConversation?._id ) return;
+          console.log("msg is for me only");
            if(message.senderId !== get().currentUserId) socket.emit( "messageDelivered", { messageId: message._id, });
             const current = get().activeConversation;
             set((state) => {
@@ -83,6 +93,16 @@ export const useChatStore =
                 return state;
               }
 
+              const plaintext = decryptMessage(
+  message.cipherText,
+  message.nonce,
+  get().sharedSecret
+);
+
+console.log("plaintxt",plaintext);
+
+message.plaintext = plaintext;
+console.log(message.plaintext);
               return {
                 messages: [
                   ...state.messages,
@@ -92,6 +112,7 @@ export const useChatStore =
               };
           });
           }
+
         );
 
         socket.on("messageDelivered", ({ messageId }) => {
@@ -144,7 +165,7 @@ export const useChatStore =
               "/messages/conversations"
             );
 
-            console.log("result is",res.data.messages)
+            console.log("result is",res.data)
           set({
             conversations:
               res.data
@@ -164,11 +185,26 @@ export const useChatStore =
 
     // OPEN CHAT
 
-    openConversation:  async (
-        conversationId
-      ) => {
-
+    openConversation:  async ( conversationId ,myId ) => {
+        
         console.log("selected conversationId",conversationId);
+        const myKeys = await getIdentityKeys(myId);
+        const conversation =  get().activeConversation;
+        console.log(conversation);
+        const receiverId = conversation.participants.find(p => String(p._id) !== String(myId));
+        const res = await API.get(`/user/public-key/${receiverId._id}`);
+
+const sharedSecret =
+ deriveSharedSecret(
+
+  myKeys.privateKey,
+
+  res.data.publicKey
+
+ );
+
+ set({sharedSecret});
+
         set({
           activeConversation:
             conversationId,
@@ -176,6 +212,30 @@ export const useChatStore =
           messages: [],
         });
 
+        console.log(
+ "MY ID",
+ myId
+);
+
+console.log(
+ "RECEIVER ID",
+ receiverId
+);
+
+console.log(
+ "MY PUB",
+ myKeys.publicKey
+);
+
+console.log(
+ "RECEIVER PUB",
+ res.data.publicKey
+);
+
+console.log(
+ "SHARED SECRET",
+ sharedSecret
+);
         const socket = getSocket();
 
         socket.emit(
@@ -226,6 +286,11 @@ export const useChatStore =
 
    sendMessage:  async (payload) => {
 
+    console.log("payload",payload);
+    
+
+    const encrypted = encryptMessage(payload.cipherText,get().sharedSecret);
+
     const optimisticMessage = {
 
       ...payload,
@@ -233,7 +298,7 @@ export const useChatStore =
       _id:
         payload.clientTempId,
 
-      decryptedText:
+      plaintext:
         payload.cipherText,
 
       senderId:
@@ -241,6 +306,8 @@ export const useChatStore =
 
       status:
         "sending",
+
+      conversationId:payload.conversationId,
 
       optimistic: true,
 
@@ -264,11 +331,13 @@ export const useChatStore =
 
     try {
 
+      const finalPayload = {...payload,cipherText: encrypted.cipherText, nonce: encrypted.nonce,};
+
       const res =
         await API.post(
           "/messages/sendMessage",
 
-          payload
+          finalPayload
         );
 
       const realMessage =
@@ -300,7 +369,7 @@ export const useChatStore =
          ...withoutTemp,
          {
            ...realMessage,
-           decryptedText:
+           plaintext:
             payload.cipherText,
            status:"sent",
          }

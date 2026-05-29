@@ -8,7 +8,6 @@ import {
 import {
   useAuthStore,
 } from "../../store/authStore";
-import CommentsBottomSheet from "../../components/feed/commentBottomSheet";
 
 export default function Profile() {
   const logout =
@@ -30,7 +29,6 @@ export default function Profile() {
         }}
    >
     <Text>Logout</Text>
-    <CommentsBottomSheet></CommentsBottomSheet>
    </Pressable>
   );
 }
