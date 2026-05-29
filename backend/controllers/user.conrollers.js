@@ -53,4 +53,23 @@ userController.EditProfile=async (req, res) => {
     }
 }
 
+exports.updatePublicKey = async (
+  req,
+  res
+) => {
+
+  const userId = req.user;
+
+  const { publicKey } = req.body;
+
+  await User.findByIdAndUpdate(
+    userId,
+    { publicKey }
+  );
+
+  return res.json({
+    message:
+      "Public key updated",
+  });
+};
 module.exports=userController;
