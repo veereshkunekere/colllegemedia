@@ -7,7 +7,7 @@ const fs=require('fs');
 
 Router.get("/profile",auth,userController.getProfile);
 Router.put("/profile/edit", upload.single('image') ,auth,userController.EditProfile);
-router.put(
+Router.put(
   "/public-key",
   verifyToken,
   userController.updatePublicKey
