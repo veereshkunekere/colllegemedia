@@ -124,214 +124,10 @@ export const deriveSharedSecret = (
   );
 };
 
-export const deriveInitialSessionKeys = async(
-
-  sharedSecret,
-
-  isInitiator
-
- )=>{
-
-  const secretBytes =
-
-   decodeBase64(
-    sharedSecret
-   );
-
-  const sendSeed =
-
-   sha256(
-
-    new Uint8Array([
-      ...secretBytes,
-      1
-    ])
-   );
-
-  const receiveSeed =
-
-   sha256(
-
-    new Uint8Array([
-      ...secretBytes,
-      2
-    ])
-   );
-
-  const sendChainKey =
-
-   encodeBase64(sendSeed);
-
-  const receiveChainKey =
-
-   encodeBase64(receiveSeed);
-
-  return isInitiator
-
-   ? {
-
-      sendChainKey,
-
-      receiveChainKey,
-
-     }
-
-   : {
-
-      sendChainKey:
-       receiveChainKey,
-
-      receiveChainKey:
-       sendChainKey,
-     };
-};
-
-// export const encryptMessage = async(
-
-//   plainText,
-
-//   messageKey
-
-//  )=>{
-
-//   const nonce =
-//    nacl.randomBytes(24);
-
-//   const encrypted =
-
-//    nacl.secretbox(
-
-//     decodeUTF8(
-//      plainText
-//     ),
-
-//     nonce,
-
-//     decodeBase64(
-//      messageKey
-//     )
-//    );
-
-//   return {
-
-//    cipherText:
-
-//     encodeBase64(
-//      encrypted
-//     ),
-
-//    nonce:
-
-//     encodeBase64(
-//      nonce
-//     )
-//   };
-// };
-
-// export const decryptMessage = async(
-
-//   cipherText,
-
-//   nonce,
-
-//   messageKey
-
-//  )=>{
-
-//   const decrypted =
-
-//    nacl.secretbox.open(
-
-//     decodeBase64(
-//      cipherText
-//     ),
-
-//     decodeBase64(
-//      nonce
-//     ),
-
-//     decodeBase64(
-//      messageKey
-//     )
-//    );
-
-//   if(!decrypted){
-
-//    throw new Error(
-//     "Decryption failed"
-//    );
-//   }
-
-//   return encodeUTF8(
-//    decrypted
-//   );
-// };
-
-export const ratchetChainKey = async(chainKey)=>{
-
-  const keyBytes =
-
-   decodeBase64(
-    chainKey
-   );
-
-  const messageKeyBytes =
-
-   sha256(
-
-    new Uint8Array([
-      ...keyBytes,
-      1
-    ])
-   );
-
-  const nextChainKeyBytes =
-
-   sha256(
-
-    new Uint8Array([
-      ...keyBytes,
-      2
-    ])
-   );
-
-  return {
-
-   messageKey:
-
-    encodeBase64(
-     messageKeyBytes
-    ),
-
-   nextChainKey:
-
-    encodeBase64(
-     nextChainKeyBytes
-    )
-  };
-};
-
-export const deriveMessageKey = (
- sharedSecret
-) => {
-
- const hash =
-  sha256(
-   decodeBase64(sharedSecret)
-  );
-
- return hash;
-};
-
 export const encryptMessage = (
  plaintext,
- sharedSecret
+ messageKey
 ) => {
-
- const key =
-  deriveMessageKey(
-   sharedSecret
-  );
 
  const nonce =
   nacl.randomBytes(
@@ -344,7 +140,7 @@ export const encryptMessage = (
     plaintext
    ),
    nonce,
-   key
+   decodeBase64(messageKey)
   );
 
  return {
@@ -359,19 +155,14 @@ export const encryptMessage = (
 export const decryptMessage = (
  cipherText,
  nonce,
- sharedSecret
+ messagekey
 ) => {
-
- const key =
-  deriveMessageKey(
-   sharedSecret
-  );
 
  const plain =
   nacl.secretbox.open(
    decodeBase64(cipherText),
    decodeBase64(nonce),
-   key
+   decodeBase64(messagekey)
   );
 
  if (!plain) {
@@ -382,4 +173,83 @@ export const decryptMessage = (
 
  return new TextDecoder()
   .decode(plain);
+};
+
+export const deriveRootKey = (
+ sharedSecret
+) => {
+
+ const hash =
+  sha256(
+   decodeBase64(sharedSecret)
+  );
+
+ return encodeBase64(hash);
+};
+
+export const deriveInitialChainKeys = (
+ rootKey
+) => {
+
+ const rootBytes =
+  decodeBase64(rootKey);
+
+ const sendChainKey =
+  encodeBase64(
+   sha256(
+    new Uint8Array([
+      ...rootBytes,
+      ...new TextEncoder()
+       .encode("send")
+    ])
+   )
+  );
+
+ const receiveChainKey =
+  encodeBase64(
+   sha256(
+    new Uint8Array([
+      ...rootBytes,
+      ...new TextEncoder()
+       .encode("receive")
+    ])
+   )
+  );
+
+ return {
+  sendChainKey,
+  receiveChainKey
+ };
+};
+
+export const deriveMessageKey = (chainKey) => {
+
+  const bytes =
+    decodeBase64(chainKey);
+
+  return encodeBase64(
+    sha256(
+      new Uint8Array([
+        ...bytes,
+        ...new TextEncoder()
+          .encode("msg")
+      ])
+    )
+  );
+};
+
+export const advanceChainKey = (chainKey) => {
+
+  const bytes =
+    decodeBase64(chainKey);
+
+  return encodeBase64(
+    sha256(
+      new Uint8Array([
+        ...bytes,
+        ...new TextEncoder()
+          .encode("chain")
+      ])
+    )
+  );
 };
