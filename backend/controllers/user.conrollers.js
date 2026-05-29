@@ -83,5 +83,19 @@ userController.updatePublicKey = async (
   }
 };
 
+userController.getPublicKey =
+ async(req,res)=>{
+
+  const user =
+   await User.findById(
+    req.params.userId
+   );
+
+  return res.json({
+   publicKey:
+    user.publicKey
+  });
+};
+
 console.log(userController.updatePublicKey);
 module.exports=userController;

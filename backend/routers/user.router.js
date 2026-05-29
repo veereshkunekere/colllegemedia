@@ -12,7 +12,7 @@ Router.put(
   auth,
   userController.updatePublicKey
 );
-
+Router.get("/public-key/:userId",auth,userController.getPublicKey);
 // Router.put("/profile/edit", (req, res) => {
 //   res.send("Test route working");
 // });
