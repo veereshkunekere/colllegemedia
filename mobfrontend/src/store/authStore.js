@@ -4,6 +4,7 @@ import API from "../services/api";
 import {
   loginUser,
   logoutUser,
+  registerUser,
   verifyToken,
 } from "../services/authService";
 
@@ -16,7 +17,9 @@ import {
 import {useChatStore} from "../store/chatStore"
 
 import {
- ensureIdentityKeys
+ ensureIdentityKeys,
+ generateIdentityKeys,
+ getIdentityKeys
 }
 from "../services/cryptoService";
 
@@ -64,18 +67,15 @@ export const useAuthStore =
         console.log(data);
         console.log(get().user);
 
-        const keys = await ensureIdentityKeys(data.user._id);
-
-await updatePublicKey(
- keys.publicKey
-);
-
-
-
-console.log(
- "Identity keys ready",
- keys
-);
+        let keys = await getIdentityKeys(data.user._id);
+        if(!keys){
+           keys = await generateIdentityKeys(data.user._id);
+        }
+        if(!data.user.publicKey || data.user.publicKey!==keys.publicKey){
+          const res = await updatePublicKey(keys.publicKey);
+        }else{
+          console.log("keys are in sync")
+        }
 
         useChatStore.getState().connectRealtime({token: data.token,userId:data.user._id});
 
@@ -94,6 +94,55 @@ console.log(
           loading: false,
         });
       }
+    },
+
+    signup: async (data,token) =>{
+        try {
+          set({
+          loading: true,
+        });
+
+        const data = await registerUser(data,token);
+        if(!data.token) return {success:false}
+
+        await saveToken(
+          data.token
+        );
+
+        console.log("token is",data.token);
+
+        set({
+          user: data.user,
+          token: data.token,
+        });
+
+        
+        let keys = await getIdentityKeys(data.user._id);
+        if(!keys){
+           keys = await generateIdentityKeys(data.user._id);
+        }
+        if(!data.user.publicKey || data.user.publicKey!==keys.publicKey){
+          const res = await updatePublicKey(keys.publicKey);
+        }else{
+          console.log("keys are in sync")
+        }
+
+        useChatStore.getState().connectRealtime({token: data.token,userId:data.user._id});
+
+        return {
+          success: true,
+        };
+
+        } catch (error) {
+           return {
+          success: false,
+          message:
+            error.message ||
+            "Login failed",
+        };  
+        }finally{
+           set({loading: true});
+        }
     },
 
     logout: async () => {
@@ -140,20 +189,15 @@ console.log(
         // get().logout();
         // return;
         
-
-        const keys =
- await ensureIdentityKeys(
-  data.user._id
- );
-
- const res =await updatePublicKey(
-  keys.publicKey
-);
-console.log("res for update of pubKey",res);
-console.log(
- "keys are",
- keys
-);
+        let keys = await getIdentityKeys(data.user._id);
+        if(!keys){
+           keys = await generateIdentityKeys(data.user._id);
+        }
+        if(!data.user.publicKey || data.user.publicKey!==keys.publicKey){
+          const res = await updatePublicKey(keys.publicKey);
+        }else{
+          console.log("keys are in sync")
+        }
 
         useChatStore.getState().connectRealtime({token: storedToken,userId:data.user._id});
       } catch (error) {
