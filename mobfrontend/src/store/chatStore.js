@@ -232,6 +232,12 @@ console.log(
 //         await SecureStore.deleteItemAsync(`sharedSecret_${conversationId}`);
 // await SecureStore.deleteItemAsync(`rootKey_${conversationId}`);
 // await SecureStore.deleteItemAsync(`chainKeys_${conversationId}`);
+console.log(
+  "MESSAGE NUMBERS",
+  await getMessageNumbers(
+    conversationId
+  )
+);
         console.log("selected conversationId",conversationId);
         const nums = await getMessageNumbers( conversationId);
 
