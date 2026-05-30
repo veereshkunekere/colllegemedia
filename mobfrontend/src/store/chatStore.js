@@ -11,7 +11,6 @@ import {
 
 import * as SecureStore
  from "expo-secure-store";
-import { useAuthStore } from "./authStore";
 import { getIdentityKeys,deriveSharedSecret,encryptMessage,decryptMessage,deriveRootKey,deriveInitialChainKeys,deriveMessageKey,advanceChainKey, } from "../services/cryptoService";
 import {getSharedSecret,saveSharedSecret,getRootKey,saveRootKey,saveChainKeys,getChainKeys,loadSession,getMessageNumbers,saveMessageNumbers} from "../services/sessionServive"
 import axios from "axios";
@@ -101,12 +100,7 @@ export const useChatStore =
             const messageKey = deriveMessageKey( receiveChainKey);
             console.log("RECIEVE CHAIN", receiveChainKey);
             console.log("MESSAGE KEY", messageKey);
-            const {
-  sendMessageNumber,
-  receiveMessageNumber
-} = await getMessageNumbers(
-  message.conversationId
-);
+            const { sendMessageNumber, receiveMessageNumber} = await getMessageNumbers( message.conversationId);
 console.log(
  "incoming",
  message.messageNumber
@@ -116,10 +110,7 @@ console.log(
  "last received",
  receiveMessageNumber
 );
-              if (
- message.messageNumber <
- receiveMessageNumber
-){
+              if ( message.messageNumber < receiveMessageNumber){
  console.log(
   "duplicate message"
  );
@@ -133,11 +124,7 @@ console.log(
 
               console.log("plaintxt",plaintext);
 
-              await saveMessageNumbers(
-  message.conversationId,
-  sendMessageNumber,
-  message.messageNumber
-);
+              await saveMessageNumbers(message.conversationId, sendMessageNumber,Math.max( message.messageNumber,receiveMessageNumber));
 
                 const nextReceiveChain = advanceChainKey(receiveChainKey);
 
@@ -462,9 +449,11 @@ console.log(
  sendMessageNumber
 );
       console.log( await getChainKeys(payload.conversationId));
-      await saveMessageNumbers(  payload.conversationId,  sendMessageNumber + 1,  Math.max(
-    receiveMessageNumber,
-    message.messageNumber
+      await saveMessageNumbers(  payload.conversationId,  sendMessageNumber + 1, receiveMessageNumber);
+console.log(
+  "AFTER SAVE",
+  await getMessageNumbers(
+    payload.conversationId
   )
 );
 
