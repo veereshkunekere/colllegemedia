@@ -54,61 +54,6 @@ messagesControllers.getMessagedContacts = async (req, res) => {
   }
 };
 
-// messagesControllers.getChats = async (req, res) => {
-//   try {
-//     const myId = req.user;  // String ID
-//     const limit = parseInt(req.query.limit) || 50; // Optional limit query param
-//     const Messages = await MessageModel.find({
-//       $or: [
-//         { senderId: req.params.id, receiverId: myId },
-//         { senderId: myId, receiverId: req.params.id }
-//       ]
-//     }).sort({ createdAt: 1 }).limit(limit);
-
-//     const formattedMessages = Messages.map(msg => ({
-//       ...msg.toObject(),
-//       senderId: msg.senderId.toString(),
-//       receiverId: msg.receiverId.toString(),  // Fixed consistent naming
-//       text: msg.text,  // Ensure 'text' field is used
-//     }));
-
-//     return res.status(200).json({ messages: formattedMessages });
-//   } catch (error) {
-//     console.log("error in getChats", error);
-//     return res.status(500).json({ error: "Failed to fetch chats" });
-//   }
-// };
-
-// messagesControllers.sendMessage = async (req, res) => {
-//   try {
-//     const { senderId, receiverId, message } = req.body;
-//     if (!senderId || !receiverId || !message) {
-//       return res.status(400).json({ error: "All fields are required" });
-//     }
-
-//     const newMessage = new MessageModel({
-//       senderId,
-//       receiverId,  // Fixed typo
-//       text: message,
-//     });
-
-//     await newMessage.save();
-    
-//     emitToUser(receiverId, 'newMessage', {
-//     ...newMessage.toObject(),
-//     senderId: newMessage.senderId.toString(),
-//     receiverId: newMessage.receiverId.toString(),
-//   });
-
-//   console.log(`Emitted newMessage to receiver ${receiverId}`);    
-
-//     return res.status(201).json({ message: "Message sent successfully", newMessage });
-//   } catch (error) {
-//     console.error("Error sending message:", error);
-//     return res.status(500).json({ error: "Internal server error" });
-//   }
-// };
-
 messagesControllers.isOnline = async (req, res) => {
   try {
     const userId = req.params.id;
@@ -129,10 +74,22 @@ messagesControllers.getMessages = async (req, res) => {
       const limit = 30;
 
       const cursor = req.query.cursor;
+      const afterMessageNumber = Number( req.query.afterMessageNumber );
+      console.log(
+ "SYNC AFTER",
+ afterMessageNumber
+);
 
       let query = {
         conversationId,
       };
+
+      if(!isNaN(afterMessageNumber)){
+        query.messageNumber ={
+           $gt:
+             afterMessageNumber
+        }
+      }
 
       // PAGINATION
 
@@ -149,15 +106,21 @@ messagesControllers.getMessages = async (req, res) => {
           query
         )
           .sort({
-            createdAt: -1,
-          })
-          .limit(limit);
+            messageNumber:1,
+          });
+
+          console.log(
+ "FOUND",
+ messages.map(
+  m => m.messageNumber
+ )
+);
+          
 
       return res
         .status(200)
         .json({
-          messages:
-            messages.reverse(),
+          messages,
 
           nextCursor:
             messages.length >
