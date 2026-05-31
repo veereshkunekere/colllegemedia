@@ -33,8 +33,8 @@ console.log(
 export const generateIdentityKeys = async(user)=>{
 
   console.log(
- "BEFORE KEYPAIR",
- global.crypto?.getRandomValues
+  "saving keys for",
+  user
 );
   const keyPair = nacl.box.keyPair();
 
@@ -48,14 +48,14 @@ export const generateIdentityKeys = async(user)=>{
 
   await SecureStore.setItemAsync(
 
-   `privateKey_${user}`,
+   `identityPrivateKey_${user}`,
 
    privateKey
   );
 
   await SecureStore.setItemAsync(
 
-   `publicKey_${user}`,
+   `identityPublicKey_${user}`,
 
    publicKey
   );
@@ -70,32 +70,24 @@ export const generateIdentityKeys = async(user)=>{
 
 export const getIdentityKeys = async(user)=>{
 
+  console.log("getting keys of",user)
+
   const publicKey =
 
    await SecureStore.getItemAsync(
-    `publicKey_${user}`
+    `identityPublicKey_${user}`
    );
 
   const privateKey =
 
    await SecureStore.getItemAsync(
-    `privateKey_${user}`
+    `identityPrivateKey_${user}`
    );
 
   return {
    publicKey,
    privateKey
   };
-};
-
-export const ensureIdentityKeys = async(user)=>{
-  const existingKeys = await getIdentityKeys(user);
-
-  if (existingKeys.publicKey && existingKeys.privateKey) {
-    return existingKeys;
-  }
-
-  return await generateIdentityKeys(user);
 };
 
 export const deriveSharedSecret = (

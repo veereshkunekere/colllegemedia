@@ -2,6 +2,7 @@ import {
   io,
 } from "socket.io-client";
 import API from "./api";
+// import { useAuthStore } from "../store/authStore";
 
 
 const SOCKET_URL = API.defaults.baseURL.replace("/api","");
@@ -27,6 +28,8 @@ export const connectSocket = ({token}) => {
         ],
       }
     );
+
+    // socket.userId = useAuthStore.getState().user._id;
 
 
     return socket;
