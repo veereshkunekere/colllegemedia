@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   Image
 } from "react-native";
-import ImageViewing from "react-native-image-viewing";
+// import ImageViewing from "react-native-image-viewing";
 import { Ionicons } from "@expo/vector-icons";
 import {formatTimeAgo} from "../../utils/formatTime";
 import {usePostStore} from "../../store/postStore";
@@ -109,7 +109,7 @@ export default function PostCard({ post }) {
       />
     </TouchableOpacity>
 
-    <ImageViewing images={[
+    {/* <ImageViewing images={[
         {
           uri:
             post.imageUrls[0],
@@ -123,7 +123,7 @@ export default function PostCard({ post }) {
       onRequestClose={() =>
         setVisible(false)
       }
-    />
+    /> */}
   </>
 )}
       {/* DIVIDER */}

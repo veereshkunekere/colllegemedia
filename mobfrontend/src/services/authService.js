@@ -1,10 +1,6 @@
 import API from "./api";
 
-export const loginUser =
-  async (
-    email,
-    password
-  ) => {
+export const loginUser = async ( email, password ) => {
     try {
       const response =
         await API.post(
@@ -24,20 +20,20 @@ export const loginUser =
     }
   };
 
-export const registerUser =
-  async (
-    userData,
-    token
+export const registerUser =  async (
+    userData
   ) => {
     try {
       const response =
-        await API.post(
-          `/auth/register/${token}`,
-          userData
-        );
+        // await API.post(
+        //   `/auth/register/${userData.token}`,
+        //   userData
+        // );
+        await API.post("/auth/dsignup",userData); //TODO make signup route use instead of dsignup
 
       return response.data;
     } catch (error) {
+      console.log("error in suthService registerUser",error);
       throw (
         error.response?.data ||
         error
@@ -45,8 +41,7 @@ export const registerUser =
     }
   };
 
-export const verifyToken =
-  async () => {
+export const verifyToken =  async () => {
     try {
       const response =
         await API.get(
@@ -62,8 +57,7 @@ export const verifyToken =
     }
   };
 
-export const logoutUser =
-  async () => {
+export const logoutUser =  async () => {
     try {
       const response =
         await API.post(
@@ -78,6 +72,26 @@ export const logoutUser =
       );
     }
   };
+
+export const verifyEmail = async (email,password) =>{
+    try {
+      const response =
+        await API.post(
+          "/auth/verify-email",
+          {
+            email,
+            password,
+          }
+        );
+
+      return response.data;
+    } catch (error) {
+      throw (
+        error.response?.data ||
+        error
+      );
+    }
+}
 
 export const updatePublicKey =
  async (publicKey) => {

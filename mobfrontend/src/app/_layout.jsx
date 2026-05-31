@@ -19,6 +19,7 @@ import {
   BottomSheetModalProvider,
 } from "@gorhom/bottom-sheet";
 
+import {initDB} from "../db/database";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -35,9 +36,17 @@ export default function RootLayout() {
         state.isCheckingAuth
     );
 
+  const { user} = useAuthStore();
+
   useEffect(() => {
     checkAuth();
   }, []);
+
+  useEffect(() => {
+  if (user?._id) {
+    initDB(user._id);
+  }
+}, [user]);
 
   if (isCheckingAuth) {
     return (

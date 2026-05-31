@@ -1,11 +1,13 @@
 import { create } from "zustand";
-import API from "../services/api";
 
 import {
   loginUser,
   logoutUser,
   registerUser,
   verifyToken,
+  verifyEmail,
+  signupUser,
+  updatePublicKey
 } from "../services/authService";
 
 import {
@@ -14,21 +16,10 @@ import {
   removeToken,
 } from "../utils/storage";
 
-import {useChatStore} from "../store/chatStore"
-
-import {
- ensureIdentityKeys,
- generateIdentityKeys,
- getIdentityKeys
-}
-from "../services/cryptoService";
-
-import {
- updatePublicKey
-}
-from "../services/authService";
-
+import {generateIdentityKeys,getIdentityKeys} from "../services/cryptoService"
 import {deleteKeys} from "../services/sessionServive"
+
+import {useChatStore} from "../store/chatStore"
 export const useAuthStore =
   create((set,get) => ({
     user: null,
@@ -64,14 +55,12 @@ export const useAuthStore =
           user: data.user,
           token: data.token,
         });
-        console.log(data);
-        console.log(get().user);
 
         let keys = await getIdentityKeys(data.user._id);
-        if(!keys){
+        if(!keys || !keys?.publicKey || !keys?.privateKey){
            keys = await generateIdentityKeys(data.user._id);
         }
-        if(!data.user.publicKey || data.user.publicKey!==keys.publicKey){
+       if(!data.user.publicKey || data.user.publicKey!==keys.publicKey){
           const res = await updatePublicKey(keys.publicKey);
         }else{
           console.log("keys are in sync")
@@ -82,67 +71,20 @@ export const useAuthStore =
         return {
           success: true,
         };
-      } catch (error) {
+      }
+       catch (error) {
         return {
           success: false,
           message:
             error.message ||
             "Login failed",
         };
-      } finally {
+      } 
+      finally {
         set({
           loading: false,
         });
       }
-    },
-
-    signup: async (data,token) =>{
-        try {
-          set({
-          loading: true,
-        });
-
-        const data = await registerUser(data,token);
-        if(!data.token) return {success:false}
-
-        await saveToken(
-          data.token
-        );
-
-        console.log("token is",data.token);
-
-        set({
-          user: data.user,
-          token: data.token,
-        });
-
-        
-        let keys = await getIdentityKeys(data.user._id);
-        if(!keys){
-           keys = await generateIdentityKeys(data.user._id);
-        }
-        if(!data.user.publicKey || data.user.publicKey!==keys.publicKey){
-          const res = await updatePublicKey(keys.publicKey);
-        }else{
-          console.log("keys are in sync")
-        }
-
-        useChatStore.getState().connectRealtime({token: data.token,userId:data.user._id});
-
-        return {
-          success: true,
-        };
-
-        } catch (error) {
-           return {
-          success: false,
-          message:
-            error.message ||
-            "Login failed",
-        };  
-        }finally{
-           set({loading: true});
-        }
     },
 
     logout: async () => {
@@ -163,12 +105,36 @@ export const useAuthStore =
       }
     },
 
+    verifyEmail: async (email,password)=>{
+      try {
+        set({loading:true});
+        const data = await verifyEmail( email, password );
+    
+        return {
+          success: true,
+        };
+
+      } catch (error) {
+        return {
+          success: false,
+          message:
+            error.message ||
+            "Login failed",
+        };
+      }
+      finally{
+        set({
+          loading: false,
+        });
+      }
+    },
+
     checkAuth: async () => {
       try {
         const storedToken = await getToken();
 
-
         if (!storedToken) {
+          console.log("token not found")
           set({
             isCheckingAuth:
               false,
@@ -178,18 +144,23 @@ export const useAuthStore =
         }
 
         const data = await verifyToken();
+        console.log(data);
+
+        // await deleteKeys(data.user._id);
+        // get().logout();
+        // return;
+
 
         set({
           user: data.user,
           token:
             storedToken,
         });
-                
-        // await deleteKeys(data.user._id);
-        // get().logout();
-        // return;
-        
-        let keys = await getIdentityKeys(data.user._id);
+
+        const userId = get().user._id;
+        console.log(userId);
+
+         let keys = await getIdentityKeys(data.user._id);
         if(!keys){
            keys = await generateIdentityKeys(data.user._id);
         }
@@ -199,8 +170,10 @@ export const useAuthStore =
           console.log("keys are in sync")
         }
 
-        useChatStore.getState().connectRealtime({token: storedToken,userId:data.user._id});
+
+        useChatStore.getState().connectRealtime({token: storedToken,userId});
       } catch (error) {
+        console.log(error);
         await removeToken();
 
         set({
@@ -214,4 +187,43 @@ export const useAuthStore =
         });
       }
     },
+
+    signup: async (userData) =>{
+        try {
+        set({
+          loading: true,
+        });
+
+        const data = await registerUser(userData);
+
+        await saveToken( data.token);
+
+        console.log("token is",data.token);
+
+        set({
+          user: data.user,
+          token: data.token,
+        });
+
+        useChatStore.getState().connectRealtime({token: data.token});
+
+        return {
+          success: true,
+        };
+      }
+       catch (error) {
+        console.log("error in authStore signup",error);
+        return {
+          success: false,
+          message:
+            error.message ||
+            "Login failed",
+        };
+      } 
+      finally {
+        set({
+          loading: false,
+        });
+      }
+    }
   }));
