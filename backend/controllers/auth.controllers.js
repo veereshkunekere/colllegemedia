@@ -153,7 +153,8 @@ authController.verifyToken=async (req,res)=>{
         user.verificationToken = undefined;
         user.verificationExpires = undefined;
         const savedUSer=await user.save();
-        res.status(200).json({message: "User registered successfully", user: savedUSer});
+        const token = jwt.sign({id:savedUSer._id}, process.env.JWT_SECRET, {expiresIn: '24h'});
+        res.status(200).json({message: "User registered successfully", user: savedUSer,token:token});
     }catch(error){  
         console.error("Error saving user:", error);
         res.status(500).json({message: "Internal server error"});
