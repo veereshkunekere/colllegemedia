@@ -70,82 +70,47 @@ export const getRootKey = async ( conversationId,user) => {
  );
 };
 
-export const saveChainKeys = async ( conversationId, sendChainKey,receiveChainKey,user) => {
-
- await SecureStore.setItemAsync(
-  `sendChainKey_${user}_${conversationId}`,
-  sendChainKey
- );
-
- await SecureStore.setItemAsync(
-  `receiveChainKey_${user}_${conversationId}`,
-  receiveChainKey
- );
-};
-
-export const getChainKeys = async ( conversationId,user ) => {
-
- const sendChainKey =
-  await SecureStore.getItemAsync(
-   `sendChainKey_${user}_${conversationId}`
+export const saveSendState = async ( conversationId, sendChainKey,sendMessageNumber,user) => {
+  await SecureStore.setItemAsync(
+    `sendChainKey_${user}_${conversationId}`,
+    sendChainKey
   );
-
- const receiveChainKey =
-  await SecureStore.getItemAsync(
-   `receiveChainKey_${user}_${conversationId}`
-  );
-
- return {
-  sendChainKey,
-  receiveChainKey
- };
-};
-
-export const saveMessageNumbers = async (
-  conversationId,
-  sendMessageNumber,
-  receiveMessageNumber,
-  user
-) => {
-
   await SecureStore.setItemAsync(
     `sendMessageNumber_${user}_${conversationId}`,
     String(sendMessageNumber)
   );
+}
 
+export const saveReceiveState = async ( conversationId, receiveChainKey,receiveMessageNumber,user) => {
+  await SecureStore.setItemAsync(
+    `receiveChainKey_${user}_${conversationId}`,
+    receiveChainKey
+  );
   await SecureStore.setItemAsync(
     `receiveMessageNumber_${user}_${conversationId}`,
     String(receiveMessageNumber)
   );
-};
+}
 
-export const getMessageNumbers = async (
-  conversationId,
-  user
-) => {
+export const getSendState = async ( conversationId,user) => {
+  const sendChainKey = await SecureStore.getItemAsync(
+    `sendChainKey_${user}_${conversationId}`
+  );
+  const sendMessageNumber = await SecureStore.getItemAsync(
+    `sendMessageNumber_${user}_${conversationId}`
+  );
+  return {sendChainKey, sendMessageNumber: Number(sendMessageNumber)};
+}
 
-  const sendMessageNumber =
-    await SecureStore.getItemAsync(
-      `sendMessageNumber_${user}_${conversationId}`
-    );
-
-  const receiveMessageNumber =
-    await SecureStore.getItemAsync(
-      `receiveMessageNumber_${user}_${conversationId}`
-    );
-
-  return {
-    sendMessageNumber:
-      sendMessageNumber
-        ? Number(sendMessageNumber)
-        : 0,
-
-    receiveMessageNumber:
-      receiveMessageNumber
-        ? Number(receiveMessageNumber)
-        : -1
-  };
-};
+export const getReceiveState = async ( conversationId,user) => {
+  const receiveChainKey = await SecureStore.getItemAsync(
+    `receiveChainKey_${user}_${conversationId}`
+  );
+  const receiveMessageNumber = await SecureStore.getItemAsync(
+    `receiveMessageNumber_${user}_${conversationId}`
+  );
+  return {receiveChainKey, receiveMessageNumber: Number(receiveMessageNumber)};
+}
 
 export const deleteRatchetState =
  async (

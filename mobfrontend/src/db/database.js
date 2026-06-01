@@ -72,4 +72,19 @@ export const initDB = async (userId) => {
   console.log("SQLite initialized");
 };
 
+export const clearDatabase =
+ async (userId) => {
+
+  const db =
+   getDB(userId);
+
+  await db.execAsync(`
+    DROP TABLE IF EXISTS messages;
+    DROP TABLE IF EXISTS skipped_keys;
+  `);
+
+  console.log(
+   "DB cleared"
+  );
+};
 export default db;

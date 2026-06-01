@@ -17,9 +17,10 @@ import {
 } from "../utils/storage";
 
 import {generateIdentityKeys,getIdentityKeys} from "../services/cryptoService"
-import {deleteKeys} from "../services/sessionServive"
+import {deleteKeys, deleteRatchetState} from "../services/sessionServive"
 
 import {useChatStore} from "../store/chatStore"
+import { clearDatabase } from "../db/database";
 export const useAuthStore =
   create((set,get) => ({
     user: null,
@@ -44,6 +45,8 @@ export const useAuthStore =
             email,
             password
           );
+
+          
 
         await saveToken(
           data.token
@@ -108,8 +111,8 @@ export const useAuthStore =
     verifyEmail: async (email,password)=>{
       try {
         set({loading:true});
+        
         const data = await verifyEmail( email, password );
-    
         return {
           success: true,
         };
@@ -132,7 +135,7 @@ export const useAuthStore =
     checkAuth: async () => {
       try {
         const storedToken = await getToken();
-
+        
         if (!storedToken) {
           console.log("token not found")
           set({
@@ -145,12 +148,6 @@ export const useAuthStore =
 
         const data = await verifyToken();
         console.log(data);
-
-        // await deleteKeys(data.user._id);
-        // get().logout();
-        // return;
-
-
         set({
           user: data.user,
           token:
@@ -158,10 +155,17 @@ export const useAuthStore =
         });
 
         const userId = get().user._id;
-        console.log(userId);
+        const token = get().token;
+        console.log("my id",userId);
+        console.log("my token",token);
+        // deleteKeys(userId);
+        // deleteRatchetState(userId);
+        // clearDatabase();
+        // get().logout();
+        // return;
 
          let keys = await getIdentityKeys(data.user._id);
-        if(!keys){
+        if(!keys || !keys.privateKey || !keys.publicKey){
            keys = await generateIdentityKeys(data.user._id);
         }
         if(!data.user.publicKey || data.user.publicKey!==keys.publicKey){
@@ -194,6 +198,17 @@ export const useAuthStore =
           loading: true,
         });
 
+        let keys = await getIdentityKeys(data.user._id);
+        if(!keys || !keys?.publicKey || !keys?.privateKey){
+           keys = await generateIdentityKeys(data.user._id);
+        }
+       if(!data.user.publicKey || data.user.publicKey!==keys.publicKey){
+          const res = await updatePublicKey(keys.publicKey);
+        }else{
+          console.log("keys are in sync")
+        }
+
+        userData.publicKey =keys.publicKey;
         const data = await registerUser(userData);
 
         await saveToken( data.token);
@@ -205,7 +220,7 @@ export const useAuthStore =
           token: data.token,
         });
 
-        useChatStore.getState().connectRealtime({token: data.token});
+        useChatStore.getState().connectRealtime({token: data.token,userId: data.user._id});
 
         return {
           success: true,

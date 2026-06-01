@@ -73,7 +73,7 @@ export const logoutUser =  async () => {
     }
   };
 
-export const verifyEmail = async (email,password) =>{
+export const verifyEmail = async (email,password,publicKey) =>{
     try {
       const response =
         await API.post(
@@ -81,6 +81,7 @@ export const verifyEmail = async (email,password) =>{
           {
             email,
             password,
+            publicKey
           }
         );
 
