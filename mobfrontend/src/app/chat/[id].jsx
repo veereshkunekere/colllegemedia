@@ -113,15 +113,8 @@ export default function ChatRoom() {
 
         senderId:
           user._id,
-
-        sessionId:
-          "session_1",
-
-        messageNumber:
-          Date.now(),
-
-        previousChainLength:
-          0,
+        
+        previousChainLength: 0,
 
         clientTempId:
           uuidv4(),
