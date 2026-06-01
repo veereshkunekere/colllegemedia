@@ -3,8 +3,8 @@ const bcrypt = require('bcryptjs');
 const UserSchema = new mongoose.Schema({
     username: {
         type: String,
-        // required: true,
-        // unique: true,
+        required: true,
+        unique: true,
         trim: true
     },
     email: {
@@ -95,7 +95,9 @@ const UserSchema = new mongoose.Schema({
     },
     publicKey:{
        type:String,
-       required:true
+       required:function(){
+        return this.isVerified;
+       }
     },
     createdAt: {
         type: Date,
@@ -122,6 +124,16 @@ UserSchema.pre('save',async function(next) {
        next(error);
    }
 }
+);
+
+UserSchema.index(
+  { verificationExpires: 1 },
+  {
+    expireAfterSeconds: 0,
+    partialFilterExpression: {
+      isVerified: false
+    }
+  }
 );
 
 module.exports=mongoose.model('User',UserSchema);

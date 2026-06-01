@@ -21,7 +21,7 @@ authController.dsignup=async (req,res)=>{
 authController.verifyEmail=async (req,res)=>{
      const {email,password}=req.body;
     //  console.log(email,password)
-      if(!email.includes('@mvsrec.edu.in')){
+      if(!email.toLowerCase().endsWith('@mvsrec.edu.in')){
          console.log("email invalid")
          return res.status(400).json({message: "Invalid email address"});
      }
@@ -30,10 +30,18 @@ authController.verifyEmail=async (req,res)=>{
          console.log("user exists")
          return res.status(400).json({message: "User already exists with this email"});
      }
+     const user = await User.findOne({email:email,isVerified:false});
+     if(user && user.verificationExpires > Date.now()){
+        return res.status(201).json({message:"verification mail already sent"})
+     }else if(user){
+        await User.deleteOne({email:email,isVerified:false});
+        console.log("sending new email");
+     }
      try {
          const newUser=new User({
              password:password,
-             email:email
+             email:email,
+             publicKey:publicKey
          });
         const verificationToken=crypto.randomBytes(32).toString('hex');
         const verificationTokenHash=crypto.createHash('sha256').update(verificationToken).digest('hex');
@@ -85,8 +93,8 @@ authController.verifyToken=async (req,res)=>{
     const token=req.params.token;
     console.log(token)
     console.log("Registration request received with body:", req.body);
-    const {username,email, password,role,department,batch,course} = req.body;
-    if(!username || !email || !password || !role || !department || !batch || !course || !token){
+    const {username,email, password,role,department,batch,course,publicKey} = req.body;
+    if(!username || !email || !password || !role || !department || !batch || !course || !token || !publicKey){
         console.log("Missing fields in registration request:", req.body);
         return res.status(400).json({message: "All fields are required"});
     }
@@ -135,7 +143,7 @@ authController.verifyToken=async (req,res)=>{
         return res.status(201).json({message:"email not verified i.e token unauthorized"});
     }
     try{
-        user.username = username;
+        user.username = username.toLowerCase();
         user.role = role;
         user.department = department;
         user.batch = batch;
@@ -152,6 +160,7 @@ authController.verifyToken=async (req,res)=>{
         user.links=[],
         user.verificationToken = undefined;
         user.verificationExpires = undefined;
+        user.publicKey = publicKey;
         const savedUSer=await user.save();
         const token = jwt.sign({id:savedUSer._id}, process.env.JWT_SECRET, {expiresIn: '24h'});
         res.status(200).json({message: "User registered successfully", user: savedUSer,token:token});
@@ -248,6 +257,11 @@ authController.verifyToken=async (req,res)=>{
       if(!user){          
           return res.status(400).json({message: "User not found"});
       }
+      if(!user.isVerified){
+             return res.status(403).json({
+               message:"Please verify your email first"
+             });
+       }
   
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if(!isPasswordValid){
