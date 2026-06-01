@@ -135,8 +135,8 @@ const socketManager = (server) => {
 
        // MARK MESSAGES SEEN
        socket.on("markSeen",  async ({ conversationId}) => {
-
-        await MessageModel.updateMany(
+        try {
+          await MessageModel.updateMany(
         {
         conversationId,
 
@@ -163,6 +163,10 @@ const socketManager = (server) => {
           userId: socket.userId
          }
         );
+        } catch (error) {
+          console.log(error);
+        }
+             
   }
 );
 
@@ -220,7 +224,8 @@ const socketManager = (server) => {
 
         socket.on("messageDelivered", async ({ messageId }) => {
 
-           const updated = await MessageModel.findByIdAndUpdate(
+          try {
+             const updated = await MessageModel.findByIdAndUpdate(
                                                 messageId,
                                               {
                                                 delivered: true,
@@ -230,6 +235,9 @@ const socketManager = (server) => {
                                               { new: true }
                                             );
 
+          } catch (error) {
+            console.log(error);
+          }
            if (!updated) return;
 
            emitToConversation(

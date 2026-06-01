@@ -90,7 +90,7 @@ conversationControllers.createOrGetConversation = async (req, res) => {
                   [receiverId]:
                     0,
                 },
-                createdBy: myId,
+                 createdBy: myId,
             }
           );
 
