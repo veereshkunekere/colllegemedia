@@ -95,7 +95,7 @@ export default function Signup() {
       "Account created successfully"
     );
 
-    router.replace("/home");
+    router.push("/emailVerify",{ email: formData.email });
   };
 
   return (

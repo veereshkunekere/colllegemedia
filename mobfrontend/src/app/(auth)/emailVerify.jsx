@@ -14,15 +14,18 @@ import {
 
 import {
   useRouter,
+  useLocalSearchParams,
 } from "expo-router";
+
+import { getIdentityKeys } from "../../services/cryptoService";
 
 import {
   useAuthStore,
 } from "../../store/authStore";
 
 export default function VerifyEmail() {
-  const router =
-    useRouter();
+  const router = useRouter();
+  const { email } = useLocalSearchParams();
   
   let done = false;
 
@@ -38,32 +41,32 @@ export default function VerifyEmail() {
         state.loading
     );
 
-  const [email, setEmail] = useState("");
-
-  const [
-    password,
-    setPassword,
-  ] = useState("");
+  const [otp, setOtp] = useState("");
 
   const handleVerify =
     async () => {
       if (
-        !email ||
-        !password
+        !otp ||
+        otp.length !== 6
       ) {
         Alert.alert(
           "Error",
-          "Please fill all fields"
+          "Please enter a valid 6-digit OTP"
         );
 
         return;
       }
 
-      const result =
-        await verifyEmail(
-          email,
-          password
-        );
+      // retrieve publicKey stored during signup (stored under the email key)
+      let publicKey = null;
+      try{
+        const keys = await getIdentityKeys(email);
+        publicKey = keys?.publicKey || null;
+      }catch(err){
+        console.log("error getting identity keys",err);
+      }
+
+      const result = await verifyEmail(email, otp, publicKey);
 
       if (
         !result.success
@@ -74,8 +77,12 @@ export default function VerifyEmail() {
         );
 
         done=true;
+        return;
       }
-    };
+
+      // on success navigate to home
+      router.push('/home');
+      }
 
   return (
     <View
@@ -87,34 +94,15 @@ export default function VerifyEmail() {
         Campus Media
       </Text>
 
-      <Text
-        style={
-          styles.subtitle
-        }
-      >
-        Verify Email
-      </Text>
-
       <TextInput
-        placeholder="College Email"
+        placeholder="Verification OTP"
         placeholderTextColor="#777"
-        value={email}
+        value={otp}
         onChangeText={
-          setEmail
+          setOtp
         }
         autoCapitalize="none"
         keyboardType="email-address"
-        style={styles.input}
-      />
-
-      <TextInput
-        placeholder="Set Password"
-        placeholderTextColor="#777"
-        value={password}
-        onChangeText={
-          setPassword
-        }
-        secureTextEntry
         style={styles.input}
       />
 
@@ -141,35 +129,10 @@ export default function VerifyEmail() {
           </Text>
         )}
       </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() =>
-          router.push(
-            "/login"
-          )
-        }
-      >
-        <Text
-          style={
-            styles.linkText
-          }
-        >
-          Already have an
-          account? Login
-        </Text>
-
-        {done && <Text
-          style={
-            styles.linkText
-          }
-        >
-          Email Verification Link Sent
-        </Text>}
-      </TouchableOpacity>
     </View>
   );
-}
 
+}
 const styles =
   StyleSheet.create({
     container: {

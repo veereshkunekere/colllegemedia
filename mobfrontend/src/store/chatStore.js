@@ -80,6 +80,11 @@ async function processIncomingMessage(message,myId,socket,set,get,skipUI=false){
             }
              
               if ( message.messageNumber <= receiveMessageNumber ) {
+                console.log(
+ "DUPLICATE PATH",
+ message.messageNumber,
+ receiveMessageNumber
+);
                 const skipped = await getSkippedKey(
                  message.conversationId,
                  message.messageNumber,
@@ -87,6 +92,10 @@ async function processIncomingMessage(message,myId,socket,set,get,skipUI=false){
                 );
 
                if(skipped){
+                console.log(
+ "SKIPPED KEY FOUND",
+ !!skipped
+);
 
                 const plaintext =
                  decryptMessage(
@@ -158,6 +167,10 @@ async function processIncomingMessage(message,myId,socket,set,get,skipUI=false){
 
                 const nextReceiveChain = advanceChainKey(currentChain);
 
+                console.log(
+ "saving receive state",
+ message.messageNumber
+);
                  await saveReceiveState(
                   message.conversationId,
                   nextReceiveChain,
@@ -540,6 +553,7 @@ export const useChatStore =
         socket.on("newMessage", async ( message ) => {
           console.log("[SOCKET] RECEIVE NUMBER", message.messageNumber);
           console.log("[SOCKET] new msg received", message);
+          console.log("receiver state", await getReceiveState(message.conversationId,socket.userId));
           console.log("[SOCKET] activeConversation", get().activeConversation);
           
           // Ignore my own message

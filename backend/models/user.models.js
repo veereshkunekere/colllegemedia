@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+
 const UserSchema = new mongoose.Schema({
     username: {
         type: String,
@@ -17,7 +18,7 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    links:[String],
+    links: [String],
     resetPasswordToken: {
         type: String,
         default: null
@@ -26,11 +27,11 @@ const UserSchema = new mongoose.Schema({
         type: Date,
         default: null
     },
-    verificationToken: {
+    verificationOtp: {
         type: String,
         default: null
     },
-    verificationExpires: {
+    verificationOtpExpires: {
         type: Date,
         default: null
     },
@@ -44,60 +45,59 @@ const UserSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['student', 'teacher','hod','principal','alumini' ],
+        enum: ['student', 'teacher', 'hod', 'principal', 'alumini'],
         default: 'student'
     },
     department: {
         type: String,
         enum: ['CSE', 'ECE', 'EEE', 'ME', 'CE', 'IT', 'Other'],
-        // required:true
+        required: true
     },
-    batch:{
+    batch: {
         type: String,
-        // required:true,
+        required: true,
     },
     course: {
         type: String,
         enum: ['B.Tech', 'M.Tech', 'MBA', 'MCA', 'PhD', 'Other'],
-        // required:true,
+        required: true,
     },
-     uploads: {
-            notes:[{
-                type:mongoose.Schema.Types.ObjectId,
-                ref:'Uploads',
-            }],
-            questionPaper:[{
-                    type: mongoose.Schema.Types.ObjectId,
-                    ref: 'Uploads'
-            }],
-            assignment: [{
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Uploads'
-            }],
-            labManual: [{
-                    type: mongoose.Schema.Types.ObjectId,
-                    ref: 'Uploads'
-            }],
-            syllabus: [{
-                    type: mongoose.Schema.Types.ObjectId,
-                    ref: 'Uploads'
-            }],
-            other: [{
-                    type: mongoose.Schema.Types.ObjectId,
-                    ref: 'Uploads'
-            }]
-
+    uploads: {
+        notes: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Uploads',
+        }],
+        questionPaper: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Uploads'
+        }],
+        assignment: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Uploads'
+        }],
+        labManual: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Uploads'
+        }],
+        syllabus: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Uploads'
+        }],
+        other: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Uploads'
+        }]
     },
-    isVerified:{
-        type:Boolean,
+    isVerified: {
+        type: Boolean,
         default: false,
-        required:true
     },
-    publicKey:{
-       type:String,
-       required:function(){
-        return this.isVerified;
-       }
+    // publicKey is null for unverified users; required once isVerified = true
+    publicKey: {
+        type: String,
+        required: function () {
+            return this.isVerified;
+        }
     },
     createdAt: {
         type: Date,
@@ -110,30 +110,26 @@ const UserSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
-UserSchema.pre('save',async function(next) {
-   // Hash the password before saving the user document
-    // Only hash the password if it has been modified (or is new)
-
-   if(!this.isModified('password')) return next();
-   
-   try {
-       const salt = await bcrypt.genSalt(10);
-       this.password = await bcrypt.hash(this.password, salt);
-       next();
-   } catch (error) {
-       next(error);
-   }
-}
-);
-
-UserSchema.index(
-  { verificationExpires: 1 },
-  {
-    expireAfterSeconds: 0,
-    partialFilterExpression: {
-      isVerified: false
+UserSchema.pre('save', async function (next) {
+    if (!this.isModified('password')) return next();
+    try {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+    } catch (error) {
+        next(error);
     }
-  }
+});
+
+// Auto-expire unverified users when their OTP expires
+UserSchema.index(
+    { verificationOtpExpires: 1 },
+    {
+        expireAfterSeconds: 0,
+        partialFilterExpression: {
+            isVerified: false
+        }
+    }
 );
 
-module.exports=mongoose.model('User',UserSchema);
+module.exports = mongoose.model('User', UserSchema);

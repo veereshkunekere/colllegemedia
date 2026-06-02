@@ -234,11 +234,7 @@ const socketManager = (server) => {
                                               },
                                               { new: true }
                                             );
-
-          } catch (error) {
-            console.log(error);
-          }
-           if (!updated) return;
+             if (!updated) return;
 
            emitToConversation(
            updated.conversationId,
@@ -250,6 +246,11 @@ const socketManager = (server) => {
                updated._id,
            }
          );
+
+          } catch (error) {
+            console.log(error);
+          }
+           
        }
       );
         

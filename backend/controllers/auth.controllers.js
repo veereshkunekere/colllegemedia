@@ -1,303 +1,287 @@
-const User=require("../models/user.models");
-const crypto=require("crypto");
-const transporter=require("../util/nodemailer");
-const jwt=require("jsonwebtoken");
-const bcrypt=require("bcryptjs")
+const User = require("../models/user.models");
+const crypto = require("crypto");
+const transporter = require("../util/nodemailer");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 
-const authController={};
-
-authController.dsignup=async (req,res)=>{
-    const {username,email, password,role,department,batch,course} = req.body;
-    const user=new User({
-        username:username,
-        email:email,
-        password:password,
-        role:role,
-    });
-    await user.save();
-
+function generateOtp() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-authController.verifyEmail=async (req,res)=>{
-     const {email,password}=req.body;
-    //  console.log(email,password)
-      if(!email.toLowerCase().endsWith('@mvsrec.edu.in')){
-         console.log("email invalid")
-         return res.status(400).json({message: "Invalid email address"});
-     }
-      const isUserExists= await User.findOne({email:email,isVerified:true});
-     if(isUserExists){
-         console.log("user exists")
-         return res.status(400).json({message: "User already exists with this email"});
-     }
-     const user = await User.findOne({email:email,isVerified:false});
-     if(user && user.verificationExpires > Date.now()){
-        return res.status(201).json({message:"verification mail already sent"})
-     }else if(user){
-        await User.deleteOne({email:email,isVerified:false});
-        console.log("sending new email");
-     }
-     try {
-         const newUser=new User({
-             password:password,
-             email:email,
-             publicKey:publicKey
-         });
-        const verificationToken=crypto.randomBytes(32).toString('hex');
-        const verificationTokenHash=crypto.createHash('sha256').update(verificationToken).digest('hex');
-        const verificationExpires = Date.now() + 3600000; // 1 hour from now
-        newUser.verificationToken=verificationTokenHash;
-        newUser.verificationExpires=verificationExpires;
-        await newUser.save();
-        // console.log("verifiaction token geneerated",verificationToken);
-        // console.log("hashed verification token generated",verificationTokenHash)
-        // console.log(newUser);
-        const verifyEmailLink=`http://localhost:5173/register/${verificationToken}`
-        const message=`Click the below link to verify the Email ${verifyEmailLink}`;
-        try {
-         const info=await transporter.sendMail({
-             to:newUser.email,
-             subject:"Email verification",
-             text:message
-         })
-         // console.log(info);
-        } catch (error) {
-          console.log("error sending verification email")
-        }
-        return res.status(200).json({message:"sent verification email successfully"})
-     } catch (error) {
-         console.log("ërror in verifying email",error);
-         res.status(201).json({message:"error in verification email"})
-     }
-  }
+const authController = {};
 
-authController.verifyToken=async (req,res)=>{
+// ─── VERIFY EMAIL (Signup step 1) ────────────────────────────────────────────
+// Creates an unverified user (publicKey: null) and sends OTP.
+// No key generation happens here — keys are generated on the OTP screen.
+authController.verifyEmail = async (req, res) => {
+    const {
+        username,
+        email,
+        password,
+        role,
+        department,
+        batch,
+        course,
+    } = req.body;
+
+    // Reject if a verified account already exists for this email
+    const verifiedExists = await User.findOne({ email, isVerified: true });
+    if (verifiedExists) {
+        return res.status(400).json({ message: "User already exists with this email" });
+    }
+
+    // If an unverified record exists and its OTP is still valid, tell the
+    // client there is no need to resend — just use the existing OTP window.
+    const pendingUser = await User.findOne({ email, isVerified: false });
+    if (pendingUser && pendingUser.verificationOtpExpires > Date.now()) {
+        // Return the pending user so the frontend can store it in state
+        return res.status(201).json({
+            message: "Verification email already sent",
+            user: pendingUser,
+        });
+    } else if (pendingUser) {
+        // Stale unverified record — remove it so we can create a fresh one
+        await User.deleteOne({ email, isVerified: false });
+    }
+
     try {
-        console.log("Verifying token for user ID:", req.user);
-            const user=await User.findById(req.user).select('-password');
-    if(user){
-        // console.log("user authorized")
-      return res.status(200).json({data:"authorized",user});
-    }
-    // console.log("user authorized")
-    return res.status(401).json({data:"unauthorized",
-        user:user
-    });
-  }
-    catch (err) {
-      return res.status(401).json({message:"token invalid or expired"});
-    }
-}
+        // publicKey is intentionally null until OTP is verified
+        const newUser = new User({
+            username,
+            email,
+            password,
+            role,
+            department,
+            batch,
+            course,
+            publicKey: null,   // ← no key at signup
+            isVerified: false,
+        });
 
- authController.registerUser= async (req, res) => {
-    const token=req.params.token;
-    console.log(token)
-    console.log("Registration request received with body:", req.body);
-    const {username,email, password,role,department,batch,course,publicKey} = req.body;
-    if(!username || !email || !password || !role || !department || !batch || !course || !token || !publicKey){
-        console.log("Missing fields in registration request:", req.body);
-        return res.status(400).json({message: "All fields are required"});
-    }
-    if(password.length < 6){
-        return res.status(400).json({message: "Password must be at least 6 characters long"});
-    }
-    if(!email.includes('@mvsrec.edu.in')){
-        return res.status(400).json({message: "Invalid email address"});
-    }
-    if(!['student', 'teacher', 'hod', 'principal', 'alumini'].includes(role)){
-        return res.status(400).json({message: "Invalid role"});
-    }
-    if(!username.match(/^[a-zA-Z0-9]+$/) && username!=="anonymous"){
-        return res.status(400).json({message: "Username can only contain letters and numbers"});
-    }
-    if(!email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)){
-        return res.status(400).json({message: "Invalid email format"});
-    }
-    if(!password.match(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,}$/)){
-        return res.status(400).json({message: "Password must contain at least one uppercase letter, one lowercase letter, and one number"});
-    }
-    if(!department || !['CSE', 'ECE', 'EEE', 'ME', 'CE', 'IT', 'Other'].includes(department)){
-        return res.status(400).json({message: "Invalid department"});   
-    }
-    if(!batch || !/^\d{4}$/.test(batch)){ // Check if batch is a 4-digit number
-        return res.status(400).json({message: "Invalid batch"});
-    }
-    if(!course || !['B.Tech', 'M.Tech', 'PhD','MBA','MCA', 'Other'].includes(course)){
-        return res.status(400).json({message: "Invalid course"});
-    }
+        const verificationOtp = generateOtp();
+        newUser.verificationOtp = verificationOtp;
+        newUser.verificationOtpExpires = Date.now() + 600000; // 10 minutes
 
-    const isUserExists= await User.findOne({email});
+        await newUser.save();
 
-    if(isUserExists && isUserExists.isVerified===true){
-        return res.status(400).json({message: "User already exists with this email"});
+        // Send OTP email
+        try {
+            await transporter.sendMail({
+                to: newUser.email,
+                subject: "Email verification",
+                text: `Your verification OTP is: ${verificationOtp}`,
+            });
+        } catch (mailError) {
+            await User.deleteOne({ _id: newUser._id });
+            console.error("Error sending verification email:", mailError);
+            return res.status(500).json({ message: "Error sending verification email" });
+        }
+
+        // Return the saved user so the frontend can keep userId in state
+        // (needed for key generation keyed to userId, not email)
+        return res.status(200).json({
+            message: "OTP sent to email",
+            user: newUser,
+        });
+    } catch (error) {
+        console.error("Error in verifyEmail:", error);
+        return res.status(500).json({ message: "Error initiating email verification" });
     }
-
-    const verifiactionTokenHash = crypto.createHash('sha256').update(token).digest('hex');
-    console.log("toke recieved",token);
-    console.log("hashed token",verifiactionTokenHash);
-    const user = await User.findOne({       
-        verificationToken: verifiactionTokenHash,
-        verificationExpires: { $gt: Date.now() } // Check if token is still valid
-    });
-    if(!user){
-        return res.status(201).json({message:"email not verified i.e token unauthorized"});
-    }
-    try{
-        user.username = username.toLowerCase();
-        user.role = role;
-        user.department = department;
-        user.batch = batch;
-        user.course = course;
-        user.isVerified=true;
-        user.uploads = {
-             notes: [],
-             questionPaper: [],
-             labManual: [],
-             assignment: [],
-             syllabus: [],
-             other: []
-           };
-        user.links=[],
-        user.verificationToken = undefined;
-        user.verificationExpires = undefined;
-        user.publicKey = publicKey;
-        const savedUSer=await user.save();
-        const token = jwt.sign({id:savedUSer._id}, process.env.JWT_SECRET, {expiresIn: '24h'});
-        res.status(200).json({message: "User registered successfully", user: savedUSer,token:token});
-    }catch(error){  
-        console.error("Error saving user:", error);
-        res.status(500).json({message: "Internal server error"});
-    }    
- }
-
-  authController.ForgotPassword= async (req, res) => {
-      const {email} = req.body;   
-      if(!email){
-          return res.status(400).json({message: "Email is required"});
-      }
-      const user=await User.findOne({email:email});
-      if(!user){
-          return res.status(400).json({message: "User not found"});
-      }
-      const resetToken = crypto.randomBytes(32).toString('hex');
-      console.log("Generated reset token:", resetToken);
-      const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
-      console.log("Reset token hash:", resetTokenHash);
-      const resetExpires = Date.now() + 3600000; // 1 hour from now
-      user.resetPasswordToken = resetTokenHash;
-      user.resetPasswordExpires = resetExpires;
-      await user.save();
-      const resetUrl = `http://localhost:5173/reset-password/${resetToken}`; // URL to reset password
-      // Send email with reset link
-      const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please make a PUT request to: \n\n ${resetUrl}`; 
-      try {
-          console.log("Email user:", process.env.MAIL);
-          console.log("Email pass:", process.env.MAIL_PASSWORD ? "*****" : "Not set");
-          console.log("Sending email to:", user.email);
-          console.log("Reset URL:", resetUrl);
-          console.log("Message content:", message);
-          // Send the email using nodemailer
-  
-          const info=await transporter.sendMail({
-              to: user.email,
-              subject: 'Password Reset Request',
-              text: message,
-          });
-          console.log("Email sent:", info.response);
-          // Optionally, you can send a success response to the client
-          res.status(200).json({message: "Password reset email sent"});
-      } catch (error) {
-          console.error("Error sending email:", error);
-          res.status(500).json({message: "Internal server error"});
-      }
-  }
-
-  authController.ResetPassword= async (req, res) => {
-      console.log("Reset password request received with body:", req.body.newPassword);
-      const {token} = req.params; 
-      const {newPassword} = req.body;
-  
-      if(!token || !newPassword){
-          console.log("Token or new password is missing");
-          return res.status(400).json({message: "Token and password are required"});
-      }
-      const resetTokenHash = crypto.createHash('sha256').update(token).digest('hex');
-      const user = await User.findOne({       
-          resetPasswordToken: resetTokenHash,
-          resetPasswordExpires: { $gt: Date.now() } // Check if token is still valid
-      });
-      if(!user){
-          return res.status(400).json({message: "Invalid or expired token"});
-      }
-      if(newPassword.length < 6){
-          return res.status(400).json({message: "Password must be at least 6 characters long"});
-      }
-      if(!newPassword.match(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,}$/)){
-          return res.status(400).json({message: "Password must contain at least one uppercase letter, one lowercase letter, and one number"});
-      }
-      user.password = newPassword;
-      user.resetPasswordToken = null; // Clear the reset token
-      user.resetPasswordExpires = null; // Clear the expiration time
-      try {
-          await user.save();
-          res.status(200).json({message: "Password reset successful"});
-      } catch (error) {
-          console.error("Error resetting password:", error);
-          res.status(500).json({message: "Internal server error"});
-      }
-  }
-
-  authController.Login= async (req, res) => {
-      console.log("Login request received with body:", req.body);
-      const {email, password} = req.body; 
-      if(!email || !password){
-          return res.status(400).json({message: "Email and password are required"});
-      }
-      const user = await User.findOne({email:email});
-      if(!user){          
-          return res.status(400).json({message: "User not found"});
-      }
-      if(!user.isVerified){
-             return res.status(403).json({
-               message:"Please verify your email first"
-             });
-       }
-  
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if(!isPasswordValid){
-        console.log("Invalid password for user:", email);
-          return res.status(400).json({message: "Invalid password"});
-      }
-      console.log("User authenticated successfully:", email);
-      user.password=undefined; // Remove password from user object before sending response
-      const token = jwt.sign({id:user._id}, process.env.JWT_SECRET, {expiresIn: '24h'}); // Generate JWT token
-      res.cookie('token',token, {
-          expires: new Date(Date.now() + 24*3600000), // 1 hour expiration
-          httpOnly:true,
-          secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-          sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax'// Prevent CSRF attacks
-      })
-      res.status(200).json({message: "Login successful",token,user});
-    }
-
-  authController.Logout= (req, res) => {
-    res.clearCookie('token'); // Clear the token cookie 
-
-    res.status(200).json({message: "Logged out successfully"});
-}
-
-//TODO: Remove this function in production, it's only for testing purposes to reset password without email verification
- authController.resetPasswordDirect = async (req, res) => {
-  const { email, newPassword } = req.body;
-  try {
-    const user = await require("../models/user.models").findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
-    user.password = newPassword;
-    await user.save();
-    res.status(200).json({ message: "Password reset successful" });
-  } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
-  }
 };
 
- module.exports=authController
+// ─── VERIFY OTP (Signup step 2) ──────────────────────────────────────────────
+// Receives publicKey from the frontend (generated on the OTP screen),
+// saves it together with isVerified = true, and returns a JWT.
+authController.verifyOtp = async (req, res) => {
+    const { email, otp, publicKey } = req.body;
+
+    if (!publicKey) {
+        return res.status(400).json({ message: "Public key required" });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+        return res.status(400).json({ message: "User not found" });
+    }
+
+    // Prevent double-verification
+    if (user.isVerified) {
+        return res.status(400).json({ message: "User already verified" });
+    }
+
+    if (user.verificationOtp !== otp) {
+        return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (user.verificationOtpExpires < Date.now()) {
+        return res.status(400).json({ message: "OTP expired" });
+    }
+
+    // Atomically save publicKey + isVerified in one save() call
+    user.publicKey = publicKey;
+    user.isVerified = true;
+    user.verificationOtp = null;
+    user.verificationOtpExpires = null;
+
+    await user.save();
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
+
+    // Strip password before responding
+    user.password = undefined;
+
+    return res.status(200).json({ message: "Email verified successfully", token, user });
+};
+
+// ─── VERIFY TOKEN ─────────────────────────────────────────────────────────────
+authController.verifyToken = async (req, res) => {
+    try {
+        const user = await User.findById(req.user).select("-password");
+        if (user) {
+            return res.status(200).json({ data: "authorized", user });
+        }
+        return res.status(401).json({ data: "unauthorized", user: null });
+    } catch (err) {
+        return res.status(401).json({ message: "Token invalid or expired" });
+    }
+};
+
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
+// Existing login behaviour is unchanged.
+authController.Login = async (req, res) => {
+    const { email, password } = req.body;
+    console.log("Login attempt for email:", email);
+    if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+        return res.status(400).json({ message: "User not found" });
+    }
+
+    if (!user.isVerified) {
+        return res.status(403).json({ message: "Please verify your email first" });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+        return res.status(400).json({ message: "Invalid password" });
+    }
+
+    user.password = undefined;
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
+
+    res.cookie("token", token, {
+        expires: new Date(Date.now() + 24 * 3600000),
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    });
+
+    return res.status(200).json({ message: "Login successful", token, user });
+};
+
+// ─── LOGOUT ───────────────────────────────────────────────────────────────────
+authController.Logout = (req, res) => {
+    res.clearCookie("token");
+    return res.status(200).json({ message: "Logged out successfully" });
+};
+
+// ─── FORGOT PASSWORD ──────────────────────────────────────────────────────────
+authController.ForgotPassword = async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+        return res.status(400).json({ message: "User not found" });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+    user.resetPasswordToken = resetTokenHash;
+    user.resetPasswordExpires = Date.now() + 3600000;
+    await user.save();
+
+    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+    const message = `To reset your password, make a request to: \n\n${resetUrl}`;
+
+    try {
+        await transporter.sendMail({
+            to: user.email,
+            subject: "Password Reset Request",
+            text: message,
+        });
+        return res.status(200).json({ message: "Password reset email sent" });
+    } catch (error) {
+        console.error("Error sending reset email:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+// ─── RESET PASSWORD ───────────────────────────────────────────────────────────
+authController.ResetPassword = async (req, res) => {
+    const { token } = req.params;
+    const { newPassword } = req.body;
+
+    if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token and password are required" });
+    }
+
+    const resetTokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const user = await User.findOne({
+        resetPasswordToken: resetTokenHash,
+        resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+        return res.status(400).json({ message: "Invalid or expired token" });
+    }
+
+    if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+    }
+
+    user.password = newPassword;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+
+    try {
+        await user.save();
+        return res.status(200).json({ message: "Password reset successful" });
+    } catch (error) {
+        console.error("Error resetting password:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+// ─── RESET PASSWORD DIRECT (TODO: remove in production) ──────────────────────
+authController.resetPasswordDirect = async (req, res) => {
+    const { email, newPassword } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: "User not found" });
+        user.password = newPassword;
+        await user.save();
+        return res.status(200).json({ message: "Password reset successful" });
+    } catch (error) {
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+// ─── DSIGNUP (TODO: delete in production) ─────────────────────────────────────
+authController.dsignup = async (req, res) => {
+    const { username, email, password, role } = req.body;
+    const user = new User({ username, email, password, role });
+    await user.save();
+    return res.status(200).json({ message: "Dev signup done" });
+};
+
+module.exports = authController;
