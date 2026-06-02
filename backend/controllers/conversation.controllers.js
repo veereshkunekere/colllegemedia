@@ -21,6 +21,7 @@ conversationControllers.createOrGetConversation = async (req, res) => {
       const {
         receiverId,
       } = req.body;
+      console.log("Received receiverId:", receiverId, "from user:", myId);
 
       if (!receiverId) {
         return res
@@ -53,9 +54,15 @@ conversationControllers.createOrGetConversation = async (req, res) => {
           });
       }
 
+      // Ensure receiver is verified before allowing conversation creation
+      if (!receiver.isVerified) {
+        return res.status(400).json({
+          error: "User not verified",
+        });
+      }
+
       // FIND EXISTING
       // CONVERSATION
-
       let conversation =
         await ConversationModel.findOne(
           {
@@ -96,6 +103,13 @@ conversationControllers.createOrGetConversation = async (req, res) => {
 
         await conversation.save();
       }
+      conversation =
+  await ConversationModel
+    .findById(conversation._id)
+    .populate(
+      "participants",
+      "username profilePicture"
+    );
 
       return res
         .status(200)

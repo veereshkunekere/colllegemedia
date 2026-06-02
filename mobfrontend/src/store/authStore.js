@@ -22,6 +22,9 @@ import {
 
 import { useChatStore } from "../store/chatStore";
 
+import {deleteKeys,deleteRatchetState} from "../services/sessionServive";
+import {clearDatabase} from "../db/database";
+
 export const useAuthStore = create((set, get) => ({
   user: null,
   token: null,
@@ -171,6 +174,12 @@ export const useAuthStore = create((set, get) => ({
       }
 
       const data = await verifyToken();
+      
+      // deleteKeys(data.user._id);
+      // deleteRatchetState(data.user._id);
+      // await clearDatabase();
+      // get().logout();
+      // return;
 
       set({ user: data.user, token: storedToken });
 

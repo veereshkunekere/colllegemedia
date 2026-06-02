@@ -13,6 +13,9 @@ Router.put(
   userController.updatePublicKey
 );
 Router.get("/public-key/:userId",auth,userController.getPublicKey);
+Router.get("/search",auth,userController.searchUsers);
+Router.get("/profile/:userId",auth,userController.getUserProfile);
+Router.get("/:userId",auth,userController.getUserById);
 // Router.put("/profile/edit", (req, res) => {
 //   res.send("Test route working");
 // });

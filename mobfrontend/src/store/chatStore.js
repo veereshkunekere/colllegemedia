@@ -157,6 +157,8 @@ async function processIncomingMessage(message,myId,socket,set,get,skipUI=false){
                                  message.nonce,
                                  messageKey
                                 );
+              socket.emit( "messageDelivered", { messageId: message._id, });
+
 
               console.log("plaintxt",plaintext);
 
@@ -177,6 +179,7 @@ async function processIncomingMessage(message,myId,socket,set,get,skipUI=false){
                   message.messageNumber,
                   myId
                 );
+
            if(!skipUI){
 
   set((state) => {
@@ -198,6 +201,18 @@ async function processIncomingMessage(message,myId,socket,set,get,skipUI=false){
     };
   });
 
+}
+
+if (
+  get().activeConversation ===
+  message.conversationId
+) {
+  setTimeout(() => {
+    socket.emit("markSeen", {
+      conversationId:
+        message.conversationId
+    });
+  }, 300);
 }
 
 return message;
@@ -234,155 +249,276 @@ export const useChatStore =
 
 
     // ===== RECEIVE QUEUE METHODS =====
-    enqueueReceiveMessage: (message) => {
-      const state = get();
-      
-      if (!message) {
-        return;
-      }
+enqueueReceiveMessage: (message) => {
 
-      if (state.receiveProcessingIds.has(message._id)) {
-        console.log("[RECEIVE QUEUE] ignoring duplicate message", message._id);
-        return;
-      }
+  if (!message) {
+    return;
+  }
 
-      const queueLength = state.receiveQueue.length + 1;
-      console.log("[RECEIVE QUEUE] enqueue", message._id, "messageNumber:", message.messageNumber, "queueLength:", queueLength);
-      if (queueLength > 100) {
-        console.warn("[RECEIVE QUEUE] unusually large", queueLength);
-      }
-      
+  let shouldStartWorker = false;
+
+  set((state) => {
+
+    if (
+      state.receiveProcessingIds.has(
+        message._id
+      )
+    ) {
+      console.log(
+        "[RECEIVE QUEUE] duplicate",
+        message._id
+      );
+
+      return state;
+    }
+
+    if (!state.receiveWorkerRunning) {
+      shouldStartWorker = true;
+    }
+
+    return {
+      receiveWorkerRunning:
+        state.receiveWorkerRunning || shouldStartWorker,
+
+      receiveProcessingIds: new Set([
+        ...state.receiveProcessingIds,
+        message._id,
+      ]),
+
+      receiveQueue: [
+        ...state.receiveQueue,
+        message,
+      ],
+    };
+  });
+
+  if (shouldStartWorker) {
+    console.log(
+      "[RECEIVE QUEUE] starting worker"
+    );
+
+    get().processReceiveQueue();
+  }
+},
+
+processReceiveQueue: async () => {
+
+  console.log(
+    "[RECEIVE WORKER START]"
+  );
+
+  while (true) {
+
+    const currentState = get();
+
+    if (
+      currentState.receiveQueue.length === 0
+    ) {
+
+      console.log(
+        "[RECEIVE QUEUE] queue empty, worker stopping"
+      );
+
+      set({
+        receiveWorkerRunning: false
+      });
+
+      break;
+    }
+
+    const message =
+      currentState.receiveQueue[0];
+
+    if (!message) {
+
+      console.log(
+        "[RECEIVE QUEUE] missing message, skipping"
+      );
+
       set((s) => ({
-        receiveProcessingIds: new Set([...s.receiveProcessingIds, message._id]),
-        receiveQueue: [...s.receiveQueue, message],
+        receiveQueue:
+          s.receiveQueue.slice(1)
       }));
 
-      if (!state.receiveWorkerRunning) {
-        set({ receiveWorkerRunning: true });
-        get().processReceiveQueue();
-      }
-    },
+      continue;
+    }
 
-    processReceiveQueue: async () => {
-      const state = get();
-      
-      if (state.receiveWorkerRunning && state.receiveQueue.length === 0) {
-        console.log("[RECEIVE QUEUE] worker already running");
-        return;
-      }
+    console.log(
+      "[RECEIVE QUEUE] dequeue",
+      message._id,
+      "queueLength:",
+      currentState.receiveQueue.length
+    );
 
-      console.log("[RECEIVE QUEUE] worker started");
+    try {
 
-      while (true) {
-        const currentState = get();
-        
-        if (currentState.receiveQueue.length === 0) {
-          console.log("[RECEIVE QUEUE] queue empty, worker stopping");
-          set({ receiveWorkerRunning: false });
-          break;
-        }
+      const myId =
+        currentState.currentUserId;
 
-        const message = currentState.receiveQueue[0];
-        if (!message) {
-          console.log("[RECEIVE QUEUE] missing message, skipping");
-          set((s) => ({ receiveQueue: s.receiveQueue.slice(1) }));
-          continue;
-        }
+      const socket =
+        getSocket();
 
-        const dequeueLength = currentState.receiveQueue.length;
-        console.log("[RECEIVE QUEUE] dequeue", message._id, "queueLength:", dequeueLength);
-        if (dequeueLength > 100) {
-          console.warn("[RECEIVE QUEUE] unusually large", dequeueLength);
-        }
+      await receiveMutex.withLock(
+        message.conversationId,
+        async () => {
 
-        try {
-          const myId = currentState.currentUserId;
-          const socket = getSocket();
-
-          await receiveMutex.withLock(
-            message.conversationId,
-            async () => {
-              console.log("[RECEIVE LOCK] acquired for conversation", message.conversationId);
-              await processIncomingMessage(message, myId, socket, set, get, false);
-              console.log("[RECEIVE LOCK] released for conversation", message.conversationId);
-            }
+          console.log(
+            "[RECEIVE LOCK] acquired",
+            message.conversationId
           );
-        } catch (error) {
-          console.error("[RECEIVE QUEUE] error processing message", message._id, error);
-        }
 
-        set((s) => ({
-          receiveQueue: s.receiveQueue.slice(1),
-          receiveProcessingIds: new Set(
-            [...s.receiveProcessingIds].filter((id) => id !== message._id)
+          await processIncomingMessage(
+            message,
+            myId,
+            socket,
+            set,
+            get,
+            false
+          );
+
+          console.log(
+            "[RECEIVE LOCK] released",
+            message.conversationId
+          );
+        }
+      );
+
+    } catch (error) {
+
+      console.error(
+        "[RECEIVE QUEUE] error",
+        message._id,
+        error
+      );
+
+    } finally {
+
+      set((s) => ({
+
+        receiveQueue:
+          s.receiveQueue.slice(1),
+
+        receiveProcessingIds:
+          new Set(
+            [...s.receiveProcessingIds]
+              .filter(
+                id => id !== message._id
+              )
           ),
-        }));
-      }
-    },
+
+      }));
+    }
+  }
+},
 
     // ===== SEND QUEUE METHODS =====
-    enqueueSendMessage: (payload) => {
-      const state = get();
-      
-      const queueLength = state.sendQueue.length + 1;
-      console.log("[SEND QUEUE] enqueue", payload.clientTempId, "queueLength:", queueLength);
-      if (queueLength > 100) {
-        console.warn("[SEND QUEUE] unusually large", queueLength);
-      }
+enqueueSendMessage: (payload) => {
+
+  if (!payload) {
+    return;
+  }
+
+  let shouldStartWorker = false;
+
+  set((state) => {
+
+    if (!state.sendWorkerRunning) {
+      shouldStartWorker = true;
+    }
+
+    return {
+      sendWorkerRunning:
+        state.sendWorkerRunning || shouldStartWorker,
+
+      sendQueue: [
+        ...state.sendQueue,
+        payload,
+      ],
+    };
+  });
+
+  if (shouldStartWorker) {
+
+    console.log(
+      "[SEND QUEUE] starting worker"
+    );
+
+    get().processSendQueue();
+  }
+},
+
+processSendQueue: async () => {
+
+  console.log(
+    "[SEND WORKER START]"
+  );
+
+  while (true) {
+
+    const currentState = get();
+
+    if (
+      currentState.sendQueue.length === 0
+    ) {
+
+      console.log(
+        "[SEND QUEUE] queue empty, worker stopping"
+      );
+
+      set({
+        sendWorkerRunning: false
+      });
+
+      break;
+    }
+
+    const payload =
+      currentState.sendQueue[0];
+
+    if (!payload) {
+
+      console.log(
+        "[SEND QUEUE] missing payload, skipping"
+      );
 
       set((s) => ({
-        sendQueue: [...s.sendQueue, payload],
+        sendQueue:
+          s.sendQueue.slice(1)
       }));
 
-      if (!state.sendWorkerRunning) {
-        set({ sendWorkerRunning: true });
-        get().processSendQueue();
-      }
-    },
+      continue;
+    }
 
-    processSendQueue: async () => {
-      const state = get();
-      
-      if (state.sendWorkerRunning && state.sendQueue.length === 0) {
-        console.log("[SEND QUEUE] worker already running");
-        return;
-      }
+    console.log(
+      "[SEND QUEUE] dequeue",
+      payload.clientTempId,
+      "queueLength:",
+      currentState.sendQueue.length
+    );
 
-      console.log("[SEND QUEUE] worker started");
+    try {
 
-      while (true) {
-        const currentState = get();
-        
-        if (currentState.sendQueue.length === 0) {
-          console.log("[SEND QUEUE] queue empty, worker stopping");
-          set({ sendWorkerRunning: false });
-          break;
-        }
+      await get().sendMessageInternal(
+        payload
+      );
 
-        const payload = currentState.sendQueue[0];
-        if (!payload) {
-          console.log("[SEND QUEUE] missing payload, skipping");
-          set((s) => ({ sendQueue: s.sendQueue.slice(1) }));
-          continue;
-        }
+    } catch (error) {
 
-        const dequeueLength = currentState.sendQueue.length;
-        console.log("[SEND QUEUE] dequeue", payload.clientTempId, "queueLength:", dequeueLength);
-        if (dequeueLength > 100) {
-          console.warn("[SEND QUEUE] unusually large", dequeueLength);
-        }
+      console.error(
+        "[SEND QUEUE] error",
+        payload.clientTempId,
+        error
+      );
 
-        try {
-          await get().sendMessageInternal(payload);
-        } catch (error) {
-          console.error("[SEND QUEUE] error sending message", payload.clientTempId, error);
-        }
+    } finally {
 
-        set((s) => ({
-          sendQueue: s.sendQueue.slice(1),
-        }));
-      }
-    },
+      set((s) => ({
+        sendQueue:
+          s.sendQueue.slice(1),
+      }));
+    }
+  }
+},
 
     sendMessageInternal: async (payload) => {
       console.log("[SEND LOCK] acquiring for conversation", payload.conversationId);
@@ -568,9 +704,6 @@ export const useChatStore =
           }
           
           console.log("[SOCKET] msg is for me only");
-          if(message.senderId !== get().currentUserId) {
-            socket.emit( "messageDelivered", { messageId: message._id, });
-          }
            if (get().isSyncing) {
             set((state) => ({
               pendingMessages: [
@@ -585,7 +718,13 @@ export const useChatStore =
           get().enqueueReceiveMessage(message);           
         });
 
-        socket.on("messageDelivered", ({ messageId }) => {
+        socket.on("messageDelivered", async ({ messageId }) => {
+
+               await updateMessageStatus(
+                messageId,
+                "delivered",
+                socket.userId
+              );
 
                set((state) => ({
 
@@ -605,20 +744,51 @@ export const useChatStore =
             }
            );
 
-       socket.on( "messagesSeen", ({ conversationId }) => {
+  socket.on("messagesSeen",async ({ conversationId }) => {
 
-             const currentUserId = get().currentUserId;
+    const currentUserId =
+      socket.userId;
 
-             set((state) => ({
+    const myMessages =
+      get().messages.filter(
+        msg =>
+          msg.conversationId === conversationId &&
+          msg.senderId === currentUserId
+      );
 
-                messages : state.messages.map( (msg) =>
-                   msg.conversationId === conversationId &&
-                    msg.senderId === currentUserId ? {
-                                         ...msg,
-                                         status: "seen",
-                                    } : msg
-                ),
-             }));
+    for (const msg of myMessages) {
+
+      await updateMessageStatus(
+        msg._id,
+        "seen",
+        currentUserId
+      );
+    }
+
+    set((state) => ({
+
+      messages:
+        state.messages.map(
+          (msg) =>
+
+            msg.conversationId ===
+              conversationId &&
+            msg.senderId ===
+              currentUserId
+
+              ? {
+                  ...msg,
+                  status: "seen"
+                }
+
+              : msg
+        )
+    }));
+
+    console.log(
+      "[SEEN] conversation seen",
+      conversationId
+    );
   }
 );
       },
@@ -877,24 +1047,46 @@ set({messages: [] });
       get().enqueueReceiveMessage(msg);
     }
 
-  } catch (error) {
+  } 
+  catch (error) {
 
     console.log(
       "[SYNC] loadMessages error",
       error
     );
 
-  } finally {
+  }
+  finally {
 
-    set({
-      pendingMessages: [],
-      isSyncing: false
-    });
+  set({
+    pendingMessages: [],
+    isSyncing: false
+  });
+
+  const socket = getSocket();
+
+  if (
+    socket &&
+    conversationId === get().activeConversation
+  ) {
 
     console.log(
-      "[SYNC] completed"
+      "[SEEN] emitting markSeen",
+      conversationId
+    );
+
+    socket.emit(
+      "markSeen",
+      {
+        conversationId
+      }
     );
   }
+
+  console.log(
+    "[SYNC] completed"
+  );
+}
 },
 
 

@@ -134,39 +134,46 @@ const socketManager = (server) => {
        })
 
        // MARK MESSAGES SEEN
-       socket.on("markSeen",  async ({ conversationId}) => {
-        try {
-          await MessageModel.updateMany(
-        {
+      socket.on("markSeen",async ({ conversationId }) => {
+
+    try {
+
+      const updated =
+        await MessageModel.updateMany(
+          {
+            conversationId,
+
+            senderId: {
+              $ne: socket.userId
+            },
+
+            seen: false
+          },
+
+          {
+            seen: true,
+            seenAt: new Date()
+          }
+        );
+
+      emitToConversation(
         conversationId,
 
-        senderId:{
-          $ne:socket.userId
-        },
-
-        seen: false,
-        },
+        "messagesSeen",
 
         {
-        seen: true,
-        seenAt:new Date(),
-        }
-     );
-
-       emitToConversation(
-         conversationId,
-
-         "messagesSeen",
-
-         {
           conversationId,
           userId: socket.userId
-         }
-        );
-        } catch (error) {
-          console.log(error);
         }
-             
+      );
+
+    } catch (error) {
+
+      console.log(
+        "markSeen error",
+        error
+      );
+    }
   }
 );
 

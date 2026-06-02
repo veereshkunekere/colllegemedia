@@ -19,6 +19,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="chat" />
       <Tabs.Screen name="create"/>
       <Tabs.Screen name="profile" />
+      <Tabs.Screen name="search" />
     </Tabs>
     </CommentSheetProvider>
     </GestureHandlerRootView>

@@ -30,3 +30,15 @@ export const getMessagedContacts = async () => {
       throw error;
     }
 };
+
+export const createOrGetConversation = async (receiverId) => {
+    console.log("Creating/getting conversation with receiverId:", receiverId);
+    try {
+      const response = await API.post('/messages/conversation', { receiverId });
+      console.log("Received conversation response:", response.data.conversation);
+      return response.data.conversation;
+    } catch (error) {
+      console.error('Error creating/getting conversation:', error);
+      throw error;
+    }
+};

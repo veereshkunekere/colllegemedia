@@ -97,5 +97,100 @@ userController.getPublicKey =
   });
 };
 
+userController.searchUsers = async ( req, res) => {
+
+  try {
+
+    const q =
+      req.query.q?.trim();
+
+    if (!q) {
+      return res.json({
+        users: []
+      });
+    }
+
+    const users =
+      await User.find({
+
+        isVerified: true,
+
+        _id: {
+          $ne: req.user.id
+        },
+
+        username: {
+          $regex: q,
+          $options: "i"
+        }
+
+      })
+      .select(
+        "_id username profilePicture role"
+      )
+      .limit(20);
+
+    res.json({
+      users
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      message:
+        "Search failed"
+    });
+
+  }
+};
+
+userController.getUserProfile = async ( req, res) => {
+
+  try {
+    const userId = req.params.userId;
+
+    const user =  await User.findById(userId)
+      .select("-password");
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+    res.json({
+      user
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({  
+      message: "Failed to fetch user profile"
+    });
+  }
+};
+
+userController.getUserById = async ( req, res) => {
+
+  try {
+    const userId = req.params.userId;
+    const user = await User.findById(userId).select(
+      "_id username bio profilePicture role"
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    return res.json({ user });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({  
+      message: "Failed to fetch user"
+    });
+  }
+};
+
 console.log(userController.updatePublicKey);
 module.exports=userController;
