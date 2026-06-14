@@ -203,7 +203,7 @@ export default function Create() {
         <Ionicons
           name="image-outline"
           size={22}
-          color="#fff"
+          color="#0f0f0f"
         />
 
         <Text
@@ -251,7 +251,7 @@ export default function Create() {
       >
         {createPostLoading ? (
           <ActivityIndicator
-            color="#fff"
+            color="#0f0f0f"
           />
         ) : (
           <Text
@@ -271,20 +271,23 @@ const styles =StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor:
-        "#050505",
+        "#ffff",
       padding: 20,
     },
 
     title: {
-      color: "#fff",
+      color: "#2a2727",
       fontSize: 28,
       fontWeight: "700",
       marginBottom: 24,
+       borderBottomWidth: 1,
+    borderBottomColor: "#645e5e",
+    paddingBottom: 10,
     },
 
     input: {
       backgroundColor:
-        "#121212",
+        "#e2e2e2",
       borderRadius: 22,
       padding: 18,
       color: "#fff",
@@ -308,7 +311,7 @@ const styles =StyleSheet.create({
     },
 
     imageBtnText: {
-      color: "#fff",
+      color: "#181717",
       marginLeft: 10,
       fontSize: 16,
     },
@@ -323,13 +326,13 @@ const styles =StyleSheet.create({
     },
 
     switchText: {
-      color: "#fff",
+      color: "#2c2a2a",
       fontSize: 16,
     },
 
     postBtn: {
       backgroundColor:
-        "#7c3aed",
+        "#2aa5f1",
       marginTop: 40,
       borderRadius: 18,
       paddingVertical: 18,

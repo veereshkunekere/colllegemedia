@@ -27,7 +27,7 @@ export default function PostCard({ post }) {
       style={[
         styles.card,
         {
-          borderColor:isAnonymous? "#5b248f": "#1f1f1f"
+          borderColor:isAnonymous? "#d0b7e7": "#dbd2d2"
         },
       ]}
     >
@@ -61,18 +61,7 @@ export default function PostCard({ post }) {
                 {formatTimeAgo(post.createdAt)}
               </Text>
 
-              <View
-                style={[
-                  styles.badge,
-                  {
-                    backgroundColor:
-                      isAnonymous
-                        ? "#5b248f"
-                        : "#0d7a5f",
-                  },
-                ]}
-              >
-              </View>
+             
             </View>
           </View>
         </View>
@@ -109,25 +98,10 @@ export default function PostCard({ post }) {
       />
     </TouchableOpacity>
 
-    {/* <ImageViewing images={[
-        {
-          uri:
-            post.imageUrls[0],
-        },
-      ]}
-
-      imageIndex={0}
-
-      visible={visible}
-
-      onRequestClose={() =>
-        setVisible(false)
-      }
-    /> */}
+    
   </>
 )}
       {/* DIVIDER */}
-      <View style={styles.divider} />
 
       {/* ACTIONS */}
       <View style={styles.actions}>
@@ -146,7 +120,7 @@ export default function PostCard({ post }) {
                    : "heart-outline"
                }
                size={22}
-               color="#fff"
+               color="#f34848"
              />
 
              <Text
@@ -163,7 +137,7 @@ export default function PostCard({ post }) {
   <Ionicons
     name="chatbubble-outline"
     size={20}
-    color="#fff"
+    color="#387ff1"
   />
 
   <Text style={styles.actionText}>
@@ -175,7 +149,7 @@ export default function PostCard({ post }) {
         <Ionicons
           name="share-social-outline"
           size={22}
-          color="#fff"
+          color="#0d0d0d"
         />
       </View>
     </View>
@@ -185,17 +159,19 @@ export default function PostCard({ post }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#0b0b0b",
+    backgroundColor: "#e4e4eabc",
     borderWidth: 1,
-    borderRadius: 28,
-    padding: 20,
-    marginBottom: 22,
+    borderRadius: 15,
+    paddingLeft: 15,
+    paddingRight: 15,
+    marginBottom: 15,
   },
 
   topRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingTop: 5,
   },
 
   userSection: {
@@ -204,9 +180,9 @@ const styles = StyleSheet.create({
   },
 
   avatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#232323",
     justifyContent: "center",
     alignItems: "center",
@@ -218,46 +194,28 @@ const styles = StyleSheet.create({
   },
 
   username: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "700",
+    color: "#2c2b2b",
+    fontSize: 18,
+    fontWeight: "500",
   },
 
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 5,
+    marginTop: 1,
   },
 
   time: {
     color: "#8f8f8f",
     marginRight: 10,
-    fontSize: 15,
-  },
-
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
-  },
-
-  badgeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 13,
   },
 
   content: {
-    color: "#fff",
-    fontSize: 20,
-    lineHeight: 34,
+    color: "#0d0d0d",
+    fontSize: 18,
+    lineHeight: 28,
     marginTop: 24,
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: "#1f1f1f",
-    marginVertical: 24,
   },
 
   actions: {
@@ -285,8 +243,10 @@ const styles = StyleSheet.create({
   backgroundColor: "#111",
 },
   actionText: {
-    color: "#fff",
+    color: "#0d0d0d",
+    margin: 4,
     marginLeft: 8,
+
     fontSize: 18,
   },
 });

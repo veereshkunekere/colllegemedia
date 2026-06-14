@@ -19,9 +19,10 @@ export const saveSkippedKey =
     (
      conversationId,
      messageNumber,
-     messageKey
+     messageKey,
+     storedAt
     )
-    VALUES (?, ?, ?)
+    VALUES (?, ?, ?,datetime('now'))
    `,
    [
     conversationId,
@@ -82,3 +83,12 @@ export const deleteSkippedKey =
    ]
   );
 };
+
+export async function deleteExpiredKeys(db) {
+  // Delete any skipped key older than 7 days
+  await db.runAsync(
+    `DELETE FROM skipped_keys 
+     WHERE storedAt < datetime('now', '-7 days')`
+  );
+}
+

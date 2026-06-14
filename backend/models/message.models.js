@@ -55,6 +55,10 @@ const MessageSchema=new mongoose.Schema({
     },
 
     deliveredAt: Date,
+    
+     ratchetKey: {
+        type: String,
+    },
 
     seenAt: Date,
     previousChainLength:{

@@ -17,8 +17,8 @@ import {
 }
 from
 "@noble/hashes/sha2";
-import { use } from "react";
 
+import { hkdf } from "@noble/hashes/hkdf";
 
 console.log(
  "GLOBAL CRYPTO",
@@ -29,6 +29,38 @@ console.log(
  "GET RANDOM VALUES",
  global.crypto?.getRandomValues
 );
+
+export const N_ROTATE = 20; // tune this
+
+export const generateRatchetKeyPair = () => {
+  const kp = nacl.box.keyPair();
+  return {
+    publicKey: encodeBase64(kp.publicKey),
+    privateKey: encodeBase64(kp.secretKey),
+  };
+};
+
+// DH ratchet step: fold a fresh DH output into the root key,
+// producing a new root key + a new chain key for one direction.
+export const dhRatchetStep = (rootKey, myPrivateKey, peerPublicKey) => {
+  const dhOut = nacl.box.before(
+    decodeBase64(peerPublicKey),
+    decodeBase64(myPrivateKey)
+  );
+
+  const okm = hkdf(
+    sha256,
+    dhOut,
+    decodeBase64(rootKey),   // salt = old root key (binds to history)
+    new TextEncoder().encode("DHRatchet"),
+    64
+  );
+
+  return {
+    rootKey: encodeBase64(okm.slice(0, 32)),
+    chainKey: encodeBase64(okm.slice(32, 64)),
+  };
+};
 
 export const generateIdentityKeys = async(user)=>{
 

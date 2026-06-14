@@ -12,7 +12,9 @@ import {
   Platform,
   TouchableOpacity,
   Text,
+  StyleSheet,
 } from "react-native";
+
 
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
@@ -40,8 +42,10 @@ import {
   getSocket,
 } from "../../services/socket";
 
-export default function ChatRoom() {
 
+export default function ChatRoom() {
+  const { receiverId } = useLocalSearchParams();
+  console.log("Receiver ID:", receiverId);
   const { id } =
     useLocalSearchParams();
 
@@ -65,7 +69,16 @@ export default function ChatRoom() {
     openConversation,
 
     sendMessage,
+    activeConversation, 
+    currentUserId
   } = useChatStore();
+ 
+
+const otherUser =
+  activeConversation?.participants?.find(
+    p => String(p._id) !== String(currentUserId)
+  );
+
 
   useEffect(() => {
 
@@ -125,6 +138,13 @@ export default function ChatRoom() {
       await sendMessage(
         payload
       );
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd(
+          {
+            animated: true,
+          }
+        );
+      }, 100);
     };
 
   return (
@@ -143,6 +163,19 @@ export default function ChatRoom() {
             : "height"
         }
       >
+       <View style={styles.header}>
+  <View style={styles.avatar}>
+    <Text>
+      {otherUser?.username?.[0]?.toUpperCase()}
+    </Text>
+  </View>
+
+  <View>
+    <Text style={styles.headerName}>
+      {otherUser?.username}
+    </Text>
+  </View>
+</View>
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -174,13 +207,7 @@ export default function ChatRoom() {
           }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd(
-              {
-                animated: true,
-              }
-            )
-          }
+          
         />
 
         <View
@@ -236,3 +263,30 @@ export default function ChatRoom() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({ 
+  header: {
+  flexDirection: "row",
+  alignItems: "center",
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+  borderBottomWidth: 1,
+  borderBottomColor: "#eee",
+  backgroundColor: "#fff",
+},
+
+avatar: {
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  backgroundColor: "#ddd",
+  justifyContent: "center",
+  alignItems: "center",
+  marginRight: 12,
+},
+
+headerName: {
+  fontSize: 18,
+  fontWeight: "600",
+},
+});

@@ -11,8 +11,12 @@ import {
 
 import * as SecureStore
  from "expo-secure-store";
-import { getIdentityKeys,deriveSharedSecret,encryptMessage,decryptMessage,deriveRootKey,deriveInitialChainKeys,deriveMessageKey,advanceChainKey, } from "../services/cryptoService";
-import {getSharedSecret,saveSharedSecret,getRootKey,saveRootKey,loadSession,deleteRatchetState,deleteKeys,getReceiveState,getSendState,saveReceiveState,saveSendState} from "../services/sessionServive"
+import {
+  getIdentityKeys, deriveSharedSecret, encryptMessage, decryptMessage,
+  deriveRootKey, deriveInitialChainKeys, deriveMessageKey, advanceChainKey,
+  dhRatchetStep, generateRatchetKeyPair, N_ROTATE,
+} from "../services/cryptoService";
+ import {getSharedSecret,saveSharedSecret,getRootKey,saveRootKey,loadSession,deleteRatchetState,deleteKeys,getReceiveState,getSendState,saveReceiveState,saveSendState,saveRatchetState,getRatchetState} from "../services/sessionServive"
 import axios from "axios";
 import {saveSkippedKey,getSkippedKey,deleteSkippedKey} from "../db/skippedKeysRepository"
 import { saveMessage,getMessagesByConversation,markMessageSent,updateMessageStatus, getLastMessage } from "../db/messageRepository";
@@ -64,6 +68,28 @@ async function processIncomingMessage(message,myId,socket,set,get,skipUI=false){
   console.log("incoming",message.messageNumber);
   
             const { receiveMessageNumber, receiveChainKey} = await getReceiveState(message.conversationId,myId);
+            let rootKey = await getRootKey(message.conversationId, myId);
+let ratchet = await getRatchetState(message.conversationId, myId);
+let activeReceiveChainKey = receiveChainKey;
+
+if (message.ratchetKey && message.ratchetKey !== ratchet.dhrPublicKey) {
+  const { rootKey: newRootKey, chainKey: newChainKey } =
+    dhRatchetStep(rootKey, ratchet.dhsPrivateKey, message.ratchetKey);
+
+  rootKey = newRootKey;
+  activeReceiveChainKey = newChainKey;
+
+  ratchet = {
+    ...ratchet,
+    dhrPublicKey: message.ratchetKey,
+    recvRatchetCount: 0,
+  };
+
+  await saveRootKey(message.conversationId, rootKey, myId);
+  await saveRatchetState(message.conversationId, ratchet, myId);
+
+  console.log("[RATCHET] receiving-chain rotated, new dhrPub:", message.ratchetKey);
+}
             const { sendMessageNumber, sendChainKey} = await getSendState( message.conversationId,myId);
             console.log("RECIEVE CHAIN", receiveChainKey);
             console.log("last received",receiveMessageNumber);
@@ -142,7 +168,7 @@ async function processIncomingMessage(message,myId,socket,set,get,skipUI=false){
                return null;
                }
                let currentReceive = receiveMessageNumber;
-               let currentChain = receiveChainKey;
+               let currentChain = activeReceiveChainKey;
               while(currentReceive + 1 < message.messageNumber){
                 const skippedKey = deriveMessageKey( currentChain);
 
@@ -179,6 +205,11 @@ async function processIncomingMessage(message,myId,socket,set,get,skipUI=false){
                   message.messageNumber,
                   myId
                 );
+                await saveRatchetState(
+  message.conversationId,
+  { ...ratchet, recvRatchetCount: ratchet.recvRatchetCount + 1 },
+  myId
+);
 
            if(!skipUI){
 
@@ -204,7 +235,7 @@ async function processIncomingMessage(message,myId,socket,set,get,skipUI=false){
 }
 
 if (
-  get().activeConversation ===
+  get().activeConversation._id ===
   message.conversationId
 ) {
   setTimeout(() => {
@@ -246,6 +277,10 @@ export const useChatStore =
 
     sendQueue: [],
     sendWorkerRunning: false,
+
+     selectActiveConv:(conversation) => {
+        set({activeConversation:conversation});
+    },
 
 
     // ===== RECEIVE QUEUE METHODS =====
@@ -532,8 +567,34 @@ processSendQueue: async () => {
             payload.conversationId,
             payload.senderId
           );
-          const messageKey = deriveMessageKey(sendChainKey);
-          const encrypted = encryptMessage(payload.cipherText, messageKey);
+          let rootKey = await getRootKey(payload.conversationId, payload.senderId);
+let ratchet = await getRatchetState(payload.conversationId, payload.senderId);
+let activeSendChainKey = sendChainKey;
+
+if (ratchet.sendRatchetCount >= N_ROTATE) {
+  const newKeyPair = generateRatchetKeyPair();
+
+  const { rootKey: newRootKey, chainKey: newChainKey } =
+    dhRatchetStep(rootKey, newKeyPair.privateKey, ratchet.dhrPublicKey);
+
+  rootKey = newRootKey;
+  activeSendChainKey = newChainKey;
+
+  ratchet = {
+    ...ratchet,
+    dhsPublicKey: newKeyPair.publicKey,
+    dhsPrivateKey: newKeyPair.privateKey,
+    sendRatchetCount: 0,
+  };
+
+  await saveRootKey(payload.conversationId, rootKey, payload.senderId);
+  await saveRatchetState(payload.conversationId, ratchet, payload.senderId);
+
+  console.log("[RATCHET] sending-chain rotated, new dhsPub:", newKeyPair.publicKey);
+}
+
+const messageKey = deriveMessageKey(activeSendChainKey);
+const encrypted = encryptMessage(payload.cipherText, messageKey);
 
           const optimisticMessage = {
             ...payload,
@@ -567,7 +628,7 @@ processSendQueue: async () => {
             payload.senderId
           );
 
-          console.log("[SEND LOCK] SEND CHAIN", sendChainKey);
+          console.log("[SEND LOCK] SEND CHAIN", activeSendChainKey);
           console.log("[SEND LOCK] encrypted data", encrypted);
           
           try {
@@ -576,19 +637,17 @@ processSendQueue: async () => {
               cipherText: encrypted.cipherText,
               nonce: encrypted.nonce,
               messageNumber: sendMessageNumber,
+              ratchetKey: ratchet.dhsPublicKey,
             };
 
             const res = await API.post("/messages/sendMessage", finalPayload);
 
             const realMessage = res.data.newMessage;
-            const nextSendChain = advanceChainKey(sendChainKey);
-            
-            await saveSendState(
-              payload.conversationId,
-              nextSendChain,
-              sendMessageNumber + 1,
-              payload.senderId
-            );
+            const nextSendChain = advanceChainKey(activeSendChainKey); 
+            await saveSendState(payload.conversationId, nextSendChain, sendMessageNumber + 1, payload.senderId);
+            await saveRatchetState(payload.conversationId, {
+               ...ratchet, sendRatchetCount: ratchet.sendRatchetCount + 1 
+              }, payload.senderId);
             
             await markMessageSent(
               payload.clientTempId,
@@ -644,10 +703,6 @@ processSendQueue: async () => {
 
     // CONNECT SOCKET
 
-    selectActiveConv:(conversation) => {
-        set({activeConversation:conversation});
-    },
-
     connectRealtime:({token , userId}) => {
 
         if ( get().socketConnected) {
@@ -693,7 +748,7 @@ processSendQueue: async () => {
           console.log("[SOCKET] activeConversation", get().activeConversation);
           
           // Ignore my own message
-          if ( message.conversationId !== get().activeConversation ) {
+          if ( message.conversationId !== get().activeConversation._id ) {
             console.log("[SOCKET] message not for active conversation, ignoring");
             return;
           }
@@ -874,6 +929,8 @@ processSendQueue: async () => {
 
               if(!rootKey){
 
+                
+
               rootKey = await deriveRootKey( sharedSecret);
 
               await saveRootKey( conversationId, rootKey,myId);
@@ -888,6 +945,14 @@ processSendQueue: async () => {
                await saveSendState( conversationId, sendChainKey, 0, myId );
                await saveReceiveState( conversationId, receiveChainKey, -1, myId );
 
+               await saveRatchetState(conversationId, {
+  dhsPublicKey: myKeys.publicKey,
+  dhsPrivateKey: myKeys.privateKey,
+  dhrPublicKey: res.data.publicKey, // peer's identity public key
+  sendRatchetCount: 0,
+  recvRatchetCount: 0,
+}, myId);
+
               }
 
 
@@ -899,10 +964,10 @@ console.log(
 
  set({sharedSecret});
 
-        set({
-          activeConversation:
-            conversationId,
-        });
+        // set({
+        //   activeConversation:
+        //     conversationId,
+        // });
 
         console.log(
  "MY ID",
@@ -1067,7 +1132,7 @@ set({messages: [] });
 
   if (
     socket &&
-    conversationId === get().activeConversation
+    conversationId === get().activeConversation._id
   ) {
 
     console.log(

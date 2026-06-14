@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   },
 
   chip: {
-    backgroundColor: "#161616",
+    backgroundColor: "#375371",
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 999,

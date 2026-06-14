@@ -97,10 +97,10 @@ const styles =
       borderBottomWidth: 1,
 
       borderBottomColor:
-        "#1f1f1f",
+        "#c1c1c1",
 
       backgroundColor:
-        "#050505",
+        "#ffffff",
     },
 
     avatar: {
@@ -120,7 +120,7 @@ const styles =
     },
 
     username: {
-      color: "#fff",
+      color: "#2f2d2d",
 
       fontSize: 16,
 

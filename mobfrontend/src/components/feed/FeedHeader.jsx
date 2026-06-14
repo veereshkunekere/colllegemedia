@@ -14,13 +14,7 @@ export default function FeedHeader() {
         </Text>
       </View>
 
-      <View style={styles.onlineBox}>
-        <View style={styles.onlineDot} />
-
-        <Text style={styles.onlineText}>
-          1.2k online
-        </Text>
-      </View>
+      
     </View>
   );
 }
@@ -28,21 +22,26 @@ export default function FeedHeader() {
 const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    paddingRight: 20,
+    paddingLeft: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#645e5e",
+    paddingBottom: 10,
     alignItems: "center",
-    marginBottom: 26,
+    justifyContent: "space-between",
   },
 
   logo: {
-    color: "#fff",
-    fontSize: 34,
+    color: "#203234",
+    fontSize: 30,
     fontWeight: "bold",
+    fontFamily:"poppins-regular"
   },
 
   subtitle: {
     color: "#8e8e8e",
-    fontSize: 16,
-    marginTop: 6,
+    fontSize: 15,
+    fontFamily:"poppins-regular"
   },
 
   onlineBox: {

@@ -182,6 +182,7 @@ export const useAuthStore = create((set, get) => ({
       // return;
 
       set({ user: data.user, token: storedToken });
+      console.log("checkAuth user:", await get().user);
 
       let keys = null;
       try {

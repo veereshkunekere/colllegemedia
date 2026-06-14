@@ -52,7 +52,17 @@ export default function Chats() {
   
     const handleConvSelection = (item) =>{
          selectActiveConv(item);
-         router.push(`chat/${item._id}`);
+          const otherUser = item.participants
+      .find(
+        (u) =>
+          u._id !==
+          currentUser._id
+      );
+      console.log("Other User:", otherUser);
+         router.push({
+          pathname: `chat/${item._id}`,
+          params:{receiverId: otherUser}
+    });
     }
 
   useEffect(() => {
@@ -118,22 +128,21 @@ const styles =
     container: {
       flex: 1,
 
-      backgroundColor:
-        "#050505",
+      backgroundColor: "#ffffff",
+      
     },
 
     title: {
-      color: "#fff",
+      color: "#3e3b3b",
 
       fontSize: 30,
 
-      fontWeight: "800",
+      fontWeight: "600",
 
-      paddingHorizontal: 20,
-
-      paddingTop: 20,
-
-      paddingBottom: 10,
+      borderBottomWidth: 1,
+    borderBottomColor: "#645e5e",
+    paddingBottom: 10,
+    padding:20
     },
 
     emptyContainer: {

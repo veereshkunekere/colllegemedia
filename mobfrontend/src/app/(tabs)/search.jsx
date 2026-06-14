@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, Text, FlatList, ActivityIndicator, StyleSheet, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSearchStore } from '../../store/searchStore';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Search() {
 	const router = useRouter();
@@ -38,6 +39,7 @@ export default function Search() {
 	);
 
 	return (
+		<SafeAreaView>
 		<View style={styles.container}>
 			<View style={styles.searchBar}>
 				<TextInput
@@ -63,22 +65,99 @@ export default function Search() {
 				keyboardShouldPersistTaps="handled"
 			/>
 		</View>
+		</SafeAreaView>
 	);
 };
 
 const styles = StyleSheet.create({
-	container: { flex: 1, padding: 12, backgroundColor: '#fff' },
-	searchBar: { flexDirection: 'row', alignItems: 'center' },
-	input: { flex: 1, height: 44, borderRadius: 8, borderWidth: 1, borderColor: '#ddd', paddingHorizontal: 12, backgroundColor: '#fafafa' },
-	button: { marginLeft: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#2196F3', borderRadius: 8 },
-	buttonText: { color: '#fff', fontWeight: '600' },
-	loading: { marginTop: 12 },
-	list: { paddingTop: 12 },
-	item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-	avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
-	avatarPlaceholder: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eee', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-	avatarLetter: { fontWeight: '700', color: '#666' },
-	username: { fontSize: 16 },
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F8FA',
+  },
+
+  searchBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 10,
+  },
+
+  input: {
+    flex: 1,
+    height: 52,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#ECECF2',
+  },
+
+  button: {
+    marginLeft: 10,
+    height: 52,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: '#5aa9ee',
+  },
+
+  buttonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+
+  loading: {
+    marginTop: 16,
+  },
+
+  list: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 16,
+    marginTop: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+
+  avatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    marginRight: 14,
+  },
+
+  avatarPlaceholder: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#DFF4EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+
+  avatarLetter: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#147D65',
+  },
+
+  username: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#202124',
+  },
 });
 
 

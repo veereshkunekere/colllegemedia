@@ -1,3 +1,5 @@
+import dotenv from "dotenv"
+dotenv.config();
 import axios from "axios";
 
 import {
@@ -5,15 +7,14 @@ import {
 } from "../utils/storage";
 
 const API = axios.create({
-  // baseURL: "https://colllegemedia.onrender.com/api",
-  baseURL: "http://192.168.31.184:3000/api",
+  baseURL: process.env.NODE_ENV == "development" ? "https://localhost:3000" : "https://colllegemedia.onrender.com/api",
 
   headers: {
     "Content-Type":
       "application/json",
   },
 });
-
+console.log("BASE URL:", API.defaults.baseURL);
 API.interceptors.request.use(
   async (config) => {
     const token =

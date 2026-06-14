@@ -112,6 +112,23 @@ export const getReceiveState = async ( conversationId,user) => {
   return {receiveChainKey, receiveMessageNumber: Number(receiveMessageNumber)};
 }
 
+export const saveRatchetState = async (conversationId, state, user) => {
+  await SecureStore.setItemAsync(`dhsPub_${user}_${conversationId}`, state.dhsPublicKey);
+  await SecureStore.setItemAsync(`dhsPriv_${user}_${conversationId}`, state.dhsPrivateKey);
+  await SecureStore.setItemAsync(`dhrPub_${user}_${conversationId}`, state.dhrPublicKey);
+  await SecureStore.setItemAsync(`sendRatchetCount_${user}_${conversationId}`, String(state.sendRatchetCount));
+  await SecureStore.setItemAsync(`recvRatchetCount_${user}_${conversationId}`, String(state.recvRatchetCount));
+};
+
+export const getRatchetState = async (conversationId, user) => {
+  const dhsPublicKey = await SecureStore.getItemAsync(`dhsPub_${user}_${conversationId}`);
+  const dhsPrivateKey = await SecureStore.getItemAsync(`dhsPriv_${user}_${conversationId}`);
+  const dhrPublicKey = await SecureStore.getItemAsync(`dhrPub_${user}_${conversationId}`);
+  const sendRatchetCount = Number(await SecureStore.getItemAsync(`sendRatchetCount_${user}_${conversationId}`) || 0);
+  const recvRatchetCount = Number(await SecureStore.getItemAsync(`recvRatchetCount_${user}_${conversationId}`) || 0);
+  return { dhsPublicKey, dhsPrivateKey, dhrPublicKey, sendRatchetCount, recvRatchetCount };
+};
+
 export const deleteRatchetState =
  async (
   conversationId,

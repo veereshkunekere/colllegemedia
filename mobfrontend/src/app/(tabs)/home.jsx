@@ -21,6 +21,7 @@ import PostCard from
 import FeedHeader from "../../components/feed/FeedHeader"
 import TrendingChips from "../../components/feed/TrendingChips"
 import { useCommentStore } from "../../store/commentStore";
+import { SafeAreaView } from "react-native-safe-area-context";
 export default function Home() {
  
 
@@ -61,6 +62,8 @@ export default function Home() {
 
 
   return (
+    <SafeAreaView style={styles.mainContainer}>
+            <FeedHeader />
     <View
       style={styles.container}
     >
@@ -68,8 +71,6 @@ export default function Home() {
 
         ListHeaderComponent={
       <>
-      <FeedHeader />
-      <TrendingChips />
       </>
   }
         keyExtractor={(item) =>
@@ -140,14 +141,17 @@ export default function Home() {
       
   
     </View>
+    </SafeAreaView>
   );
 }
 
 const styles =
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor:
-        "#050505",
+    mainContainer:{
+    flexDirection: "column",
+    flex: 1,
+    backgroundColor:"#ffffff",
+     
     },
+    
   });

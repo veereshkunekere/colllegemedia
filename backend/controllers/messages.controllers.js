@@ -159,7 +159,8 @@ messagesControllers.sendMessage = async (req, res) => {
         messageNumber,
 
         previousChainLength,
-        nonce
+        nonce,
+        ratchetKey
       } = req.body;
 
       console.log(nonce);
@@ -211,7 +212,8 @@ messagesControllers.sendMessage = async (req, res) => {
             messageNumber,
 
             previousChainLength,
-            nonce
+            nonce,
+            ratchetKey
           }
         );
 

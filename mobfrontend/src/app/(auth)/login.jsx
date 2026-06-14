@@ -148,7 +148,7 @@ export default function Login() {
       <TouchableOpacity
         onPress={() =>
           router.push(
-            "/register"
+            "/signup"
           )
         }
       >
@@ -158,7 +158,7 @@ export default function Login() {
           }
         >
           Don’t have an
-          account? Register
+          account? Sign Up
         </Text>
       </TouchableOpacity>
     </View>

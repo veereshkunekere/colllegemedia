@@ -1,8 +1,7 @@
 import * as SQLite from "expo-sqlite";
-
 let db = null;
 let currentDbUser = null;
-
+import { deleteExpiredKeys } from "./skippedKeysRepository";
 export const getDB = (
   userId
 ) => {
@@ -24,7 +23,9 @@ export const getDB = (
 export const initDB = async (userId) => {
 
     const db = getDB(userId);
-            
+    
+      await clearDatabase(userId);
+
   await db.execAsync(`
     
     CREATE TABLE IF NOT EXISTS messages (
@@ -60,6 +61,7 @@ export const initDB = async (userId) => {
   messageNumber INTEGER,
 
   messageKey TEXT,
+  storedAt TEXT DEFAULT CURRENT_TIMESTAMP,
 
   PRIMARY KEY (
     conversationId,
@@ -68,6 +70,10 @@ export const initDB = async (userId) => {
 );
     
     `);
+    
+  await deleteExpiredKeys(db);
+
+
 
   console.log("SQLite initialized");
 };
@@ -87,4 +93,6 @@ export const clearDatabase =
    "DB cleared"
   );
 };
+
+
 export default db;
