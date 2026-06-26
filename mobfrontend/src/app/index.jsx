@@ -1,9 +1,15 @@
-import { Redirect } from 'expo-router'
-import React from 'react'
+import { Redirect } from "expo-router";
+import { useEffect } from "react";
+import { useAuthStore } from "../store/authStore";
 
-export default function index() {
-  return (
-    <Redirect href="/home" />
-  )
+export default function Index() {
+  const { user, isCheckingAuth, checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  if (isCheckingAuth) return null; // or a splash/loading view
+
+  return user ? <Redirect href="/home" /> : <Redirect href="/login" />;
 }
-

@@ -1,26 +1,22 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+} from "react-native";
+
+import { Ionicons } from "@expo/vector-icons";
 
 export default function FeedHeader() {
   return (
     <View style={styles.header}>
       <View>
         <Text style={styles.logo}>
-          CollegeMedia
-        </Text>
-
-        <Text style={styles.subtitle}>
-          Your campus community
+          ColllegeMedia
         </Text>
       </View>
 
-      <View style={styles.onlineBox}>
-        <View style={styles.onlineDot} />
-
-        <Text style={styles.onlineText}>
-          1.2k online
-        </Text>
-      </View>
+     
     </View>
   );
 }
@@ -30,40 +26,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 26,
+    marginBottom: 24,
+    marginTop: 8,
   },
 
   logo: {
-    color: "#fff",
-    fontSize: 34,
-    fontWeight: "bold",
+    color: "#100f0f",
+    fontSize: 30,
+    fontWeight:"700"
   },
 
-  subtitle: {
-    color: "#8e8e8e",
-    fontSize: 16,
-    marginTop: 6,
-  },
-
-  onlineBox: {
+  
+  rightIcons: {
     flexDirection: "row",
+  },
+
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFF",
+    justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#151515",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 999,
-  },
+    marginLeft: 10,
 
-  onlineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 10,
-    backgroundColor: "#00ff95",
-    marginRight: 8,
-  },
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
 
-  onlineText: {
-    color: "#fff",
-    fontWeight: "600",
+    elevation: 2,
   },
 });

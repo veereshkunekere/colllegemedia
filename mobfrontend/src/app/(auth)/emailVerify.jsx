@@ -23,9 +23,11 @@ import {
   useAuthStore,
 } from "../../store/authStore";
 
-export default function VerifyEmail() {
+export default function EmailVerify() {
   const router = useRouter();
   const { email } = useLocalSearchParams();
+
+  const {user} = useAuthStore();
   
   let done = false;
 
@@ -57,16 +59,7 @@ export default function VerifyEmail() {
         return;
       }
 
-      // retrieve publicKey stored during signup (stored under the email key)
-      let publicKey = null;
-      try{
-        const keys = await getIdentityKeys(email);
-        publicKey = keys?.publicKey || null;
-      }catch(err){
-        console.log("error getting identity keys",err);
-      }
-
-      const result = await verifyEmail(email, otp, publicKey);
+      const result = await verifyEmail(email, otp);
 
       if (
         !result.success

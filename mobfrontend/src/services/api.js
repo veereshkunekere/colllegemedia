@@ -5,8 +5,10 @@ import {
 } from "../utils/storage";
 
 const API = axios.create({
-  // baseURL: "https://colllegemedia.onrender.com/api",
-  baseURL: "http://192.168.31.184:3000/api",
+   baseURL:
+    process.env.EXPO_PUBLIC_ENV === "development"
+      ? process.env.EXPO_PUBLIC_LOCAL_IP_URL
+      : process.env.EXPO_PUBLIC_API_BASE_URL,
 
   headers: {
     "Content-Type":

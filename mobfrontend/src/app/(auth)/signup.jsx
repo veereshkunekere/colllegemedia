@@ -88,14 +88,20 @@ export default function Signup() {
         result.message
       );
       return;
-    }
+    }else{
 
-    Alert.alert(
+      Alert.alert(
       "Success",
       "Account created successfully"
-    );
+      );
 
-    router.push("/emailVerify",{ email: formData.email });
+    router.push({
+     pathname: "/(auth)/emailVerify",
+     params: { email: formData.email },
+    });
+
+    }
+
   };
 
   return (

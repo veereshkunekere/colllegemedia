@@ -1,5 +1,5 @@
 import { create } from "zustand";
-
+import API from "../services/api"
 import {
   getFeedPosts,
   toggleLikePost,
@@ -16,6 +16,20 @@ export const usePostStore =create((set, get) => ({
     refreshing: false,
     hasMore: true,
     createPostLoading: false,
+
+    reportTweet: async (id) => {
+  try {
+    const response = await API.post(
+      "/tweet/reportTweet",
+      { id }
+    );
+
+    if(response.status==200) return true;
+    else return false;
+  } catch (error) {
+    console.log("error in reporting",error)
+  }
+},
 
     fetchPosts:async (
         refresh = false

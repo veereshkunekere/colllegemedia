@@ -161,187 +161,164 @@ export default function Create() {
     };
 
   return (
-    <View
-      style={styles.container}
-    >
-      <Text
-        style={styles.title}
-      >
-        Create Post
-      </Text>
+  <View style={styles.container}>
+    <Text style={styles.title}>Create Post</Text>
 
+    <View style={styles.card}>
       <TextInput
         placeholder="What's happening on campus?"
-        placeholderTextColor="#777"
+        placeholderTextColor="#040404"
         multiline
         value={content}
-        onChangeText={
-          setContent
-        }
+        onChangeText={setContent}
         style={styles.input}
       />
 
       {image && (
         <Image
-          source={{
-            uri: image,
-          }}
-          style={
-            styles.preview
-          }
+          source={{ uri: image }}
+          style={styles.preview}
         />
       )}
 
-      <TouchableOpacity
-        style={
-          styles.imageBtn
-        }
-        onPress={
-          pickImage
-        }
-      >
-        <Ionicons
-          name="image-outline"
-          size={22}
-          color="#fff"
-        />
-
-        <Text
-          style={
-            styles.imageBtnText
-          }
+      <View style={styles.actionsRow}>
+        <TouchableOpacity
+          style={styles.imageBtn}
+          onPress={pickImage}
         >
-          Pick Image
-        </Text>
-      </TouchableOpacity>
+          <Ionicons
+            name="image-outline"
+            size={22}
+            color="#7B61FF"
+          />
+          <Text style={styles.imageBtnText}>
+            Add Photo
+          </Text>
+        </TouchableOpacity>
 
-      <View
-        style={
-          styles.switchRow
-        }
-      >
-        <Text
-          style={
-            styles.switchText
-          }
-        >
-          Post Anonymously
-        </Text>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchText}>
+            Anonymous
+          </Text>
 
-        <Switch
-          value={
-            isAnonymous
-          }
-          onValueChange={
-            setIsAnonymous
-          }
-        />
+          <Switch
+            value={isAnonymous}
+            onValueChange={setIsAnonymous}
+          />
+        </View>
       </View>
+    </View>
 
-      <TouchableOpacity
-        style={
-          styles.postBtn
-        }
-        onPress={
-          handlePost
-        }
-        disabled={
-          createPostLoading
-        }
-      >
-        {createPostLoading ? (
-          <ActivityIndicator
+    <TouchableOpacity
+      style={styles.postBtn}
+      onPress={handlePost}
+      disabled={createPostLoading}
+    >
+      {createPostLoading ? (
+        <ActivityIndicator color="#fff" />
+      ) : (
+        <>
+          <Ionicons
+            name="send"
+            size={20}
             color="#fff"
           />
-        ) : (
-          <Text
-            style={
-              styles.postBtnText
-            }
-          >
-            Post
+          <Text style={styles.postBtnText}>
+            Publish Post
           </Text>
-        )}
-      </TouchableOpacity>
-    </View>
-  );
+        </>
+      )}
+    </TouchableOpacity>
+  </View>
+);
 }
 
 const styles =StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor:
-        "#050505",
-      padding: 20,
-    },
+   container: {
+  flex: 1,
+  backgroundColor: "#FAFAFA",
+  paddingHorizontal: 18,
+  paddingTop: 18,
+},
 
-    title: {
-      color: "#fff",
-      fontSize: 28,
-      fontWeight: "700",
-      marginBottom: 24,
-    },
+title: {
+  color: "#0f0e0e",
+  fontSize: 28,
+  fontWeight: "700",
+  marginBottom: 20,
+},
 
-    input: {
-      backgroundColor:
-        "#121212",
-      borderRadius: 22,
-      padding: 18,
-      color: "#fff",
-      minHeight: 180,
-      fontSize: 18,
-      textAlignVertical:
-        "top",
-    },
+card: {
+  backgroundColor: "#d0c9c9",
+  borderRadius: 24,
+  borderWidth:1,
+  borderColor:"#0000",
+  padding: 18,
+},
 
-    preview: {
-      width: "100%",
-      height: 240,
-      borderRadius: 20,
-      marginTop: 20,
-    },
+input: {
+  color: "#fff",
+  fontSize: 17,
+  minHeight: 180,
+  textAlignVertical: "top",
+},
 
-    imageBtn: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginTop: 20,
-    },
+preview: {
+  width: "100%",
+  height: 240,
+  borderRadius: 18,
+  marginTop: 18,
+},
 
-    imageBtnText: {
-      color: "#fff",
-      marginLeft: 10,
-      fontSize: 16,
-    },
+actionsRow: {
+  marginTop: 18,
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+},
 
-    switchRow: {
-      flexDirection: "row",
-      justifyContent:
-        "space-between",
-      alignItems:
-        "center",
-      marginTop: 30,
-    },
+imageBtn: {
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: "#e4dddd",
+  paddingHorizontal: 14,
+  paddingVertical: 10,
+  borderRadius: 14,
+},
 
-    switchText: {
-      color: "#fff",
-      fontSize: 16,
-    },
+imageBtnText: {
+  color: "#fff",
+  marginLeft: 8,
+  fontSize: 15,
+  fontWeight: "600",
+},
 
-    postBtn: {
-      backgroundColor:
-        "#7c3aed",
-      marginTop: 40,
-      borderRadius: 18,
-      paddingVertical: 18,
-      justifyContent:
-        "center",
-      alignItems:
-        "center",
-    },
+switchRow: {
+  flexDirection: "row",
+  alignItems: "center",
+},
 
-    postBtnText: {
-      color: "#fff",
-      fontSize: 18,
-      fontWeight: "700",
-    },
+switchText: {
+  color: "#fff",
+  marginRight: 8,
+  fontSize: 15,
+},
+
+postBtn: {
+  backgroundColor: "#7B61FF",
+  height: 56,
+  borderRadius: 18,
+  marginTop: 24,
+
+  flexDirection: "row",
+  justifyContent: "center",
+  alignItems: "center",
+},
+
+postBtnText: {
+  color: "#fff",
+  fontSize: 17,
+  fontWeight: "700",
+  marginLeft: 10,
+},
   });

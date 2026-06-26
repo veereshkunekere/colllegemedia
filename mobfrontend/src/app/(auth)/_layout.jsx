@@ -1,10 +1,7 @@
 import { Slot, Stack,Redirect } from "expo-router";
 import {useAuthStore} from "../../store/authStore"
 export default function AuthLayout() {
-  const {user} = useAuthStore();
-  if(user){
-    return <Redirect href="/home"/>
-  }
+ 
   return (
    <Stack
       screenOptions={{

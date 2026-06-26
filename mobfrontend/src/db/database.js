@@ -87,4 +87,3 @@ export const clearDatabase =
    "DB cleared"
   );
 };
-export default db;

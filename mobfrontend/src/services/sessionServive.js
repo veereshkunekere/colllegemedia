@@ -99,7 +99,7 @@ export const getSendState = async ( conversationId,user) => {
   const sendMessageNumber = await SecureStore.getItemAsync(
     `sendMessageNumber_${user}_${conversationId}`
   );
-  return {sendChainKey, sendMessageNumber: Number(sendMessageNumber)};
+  return {sendChainKey, sendMessageNumber: Number(sendMessageNumber) || 0};
 }
 
 export const getReceiveState = async ( conversationId,user) => {
@@ -109,7 +109,7 @@ export const getReceiveState = async ( conversationId,user) => {
   const receiveMessageNumber = await SecureStore.getItemAsync(
     `receiveMessageNumber_${user}_${conversationId}`
   );
-  return {receiveChainKey, receiveMessageNumber: Number(receiveMessageNumber)};
+  return {receiveChainKey, receiveMessageNumber: Number(receiveMessageNumber) || -1};
 }
 
 export const deleteRatchetState =

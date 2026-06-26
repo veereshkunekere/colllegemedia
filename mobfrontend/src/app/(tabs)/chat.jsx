@@ -6,151 +6,122 @@ import {
   SafeAreaView,
 } from "react-native";
 
-import {
-  useEffect,
-} from "react";
+import { useEffect } from "react";
 
-import {
-  useRouter,
-} from "expo-router";
+import { useRouter } from "expo-router";
 
-import {
-  useChatStore,
-} from "../../store/chatStore";
+import { useChatStore } from "../../store/chatStore";
 
-import {
-  useAuthStore,
-} from "../../store/authStore";
+import { useAuthStore } from "../../store/authStore";
 
-import ConversationCard
-  from "../../components/chats/ConversationCard";
+import ConversationCard from "../../components/chats/ConversationCard";
 
 export default function Chats() {
+  const { selectActiveConv } = useChatStore();
 
-  const {selectActiveConv} =useChatStore();
+  const router = useRouter();
 
-  const router =
-    useRouter();
+  const conversations = useChatStore(
+    (state) => state.conversations
+  );
 
-  const conversations =
-    useChatStore(
-      (state) =>
-        state.conversations
-    );
+  const loadConversations = useChatStore(
+    (state) => state.loadConversations
+  );
 
-  const loadConversations =
-    useChatStore(
-      (state) =>
-        state.loadConversations
-    );
+  const currentUser = useAuthStore(
+    (state) => state.user
+  );
 
-  const currentUser =
-    useAuthStore(
-      (state) =>
-        state.user
-    );
-  
-    const handleConvSelection = (item) =>{
-         selectActiveConv(item);
-         router.push(`chat/${item._id}`);
-    }
+  const handleConvSelection = (item) => {
+    selectActiveConv(item);
+    router.push(`chat/${item._id}`);
+  };
 
   useEffect(() => {
     loadConversations();
   }, []);
 
   return (
-    <SafeAreaView
-      style={styles.container}
-    >
-
-      <Text
-        style={styles.title}
-      >
-        Chats
-      </Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Messages</Text>
+      </View>
 
       <FlatList
         data={conversations}
-
-        keyExtractor={(item) =>
-          item._id
-        }
-
-        renderItem={({
-          item,
-        }) => (
-          <ConversationCard
-            conversation={item}
-
-            currentUserId={
-              currentUser?._id
-            }
-
-            onPress={()=> handleConvSelection(item)}
-          />
-        )}
-
-        ListEmptyComponent={
-          <View
-            style={
-              styles.emptyContainer
-            }
-          >
-            <Text
-              style={
-                styles.emptyText
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: 18,
+          paddingBottom: 100,
+        }}
+        keyExtractor={(item) => item._id}
+        renderItem={({ item }) => (
+          <View style={styles.chatCard}>
+            <ConversationCard
+              conversation={item}
+              currentUserId={currentUser?._id}
+              onPress={() =>
+                handleConvSelection(item)
               }
-            >
+            />
+          </View>
+        )}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
               No conversations yet
             </Text>
           </View>
         }
       />
-
     </SafeAreaView>
   );
 }
 
-const styles =
-  StyleSheet.create({
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FAFAFA",
+  },
 
-    container: {
-      flex: 1,
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
 
-      backgroundColor:
-        "#050505",
+  title: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: "#111",
+  },
+
+  chatCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 22,
+    marginBottom: 12,
+    overflow: "hidden",
+
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
     },
 
-    title: {
-      color: "#fff",
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
 
-      fontSize: 30,
+    elevation: 2,
+  },
 
-      fontWeight: "800",
+  emptyContainer: {
+    alignItems: "center",
+    marginTop: 120,
+  },
 
-      paddingHorizontal: 20,
-
-      paddingTop: 20,
-
-      paddingBottom: 10,
-    },
-
-    emptyContainer: {
-      flex: 1,
-
-      justifyContent:
-        "center",
-
-      alignItems:
-        "center",
-
-      marginTop: 120,
-    },
-
-    emptyText: {
-      color: "#666",
-
-      fontSize: 16,
-    },
+  emptyText: {
+    color: "#999",
+    fontSize: 16,
+  },
 });

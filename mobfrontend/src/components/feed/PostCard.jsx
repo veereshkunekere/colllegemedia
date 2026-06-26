@@ -4,7 +4,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image
+  Image,
+  Alert
 } from "react-native";
 // import ImageViewing from "react-native-image-viewing";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,10 +15,35 @@ import { useCommentSheet } from "../../contexts/CommentSheetProvider";
 export default function PostCard({ post }) {
   const isAnonymous = post.isAnonymous;
   const [visible,setVisible,] = useState(false);
+  const {reportTweet} = usePostStore();
   const toggleLike =usePostStore(
     (state) =>
       state.toggleLike
   );
+
+  const handleReportPost = (post) => {
+  Alert.alert(
+    "Report Post",
+    "Are you sure you want to report this post?",
+    [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Report",
+        style: "destructive",
+        onPress: () => {
+          const res=reportTweet(post);
+          if(res) {
+          console.log("Reporting:", post._id);
+          }
+          // Call your existing report API here
+        },
+      },
+    ]
+  );
+};
 
   const { openComments } = useCommentSheet();
  
@@ -77,11 +103,17 @@ export default function PostCard({ post }) {
           </View>
         </View>
 
-        <Ionicons
-          name="ellipsis-horizontal"
-          size={20}
-          color="#888"
-        />
+        <TouchableOpacity
+  style={styles.menuItem}
+  onPress={() => handleReportPost(post)}
+>
+  <Ionicons
+    name="flag-outline"
+    size={20}
+    color="#E53935"
+  />
+
+</TouchableOpacity>
       </View>
 
       {/* CONTENT */}
@@ -146,7 +178,7 @@ export default function PostCard({ post }) {
                    : "heart-outline"
                }
                size={22}
-               color="#fff"
+               color="#e44141"
              />
 
              <Text
@@ -163,7 +195,7 @@ export default function PostCard({ post }) {
   <Ionicons
     name="chatbubble-outline"
     size={20}
-    color="#fff"
+    color="#5c5cde"
   />
 
   <Text style={styles.actionText}>
@@ -185,11 +217,9 @@ export default function PostCard({ post }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#0b0b0b",
-    borderWidth: 1,
-    borderRadius: 28,
-    padding: 20,
-    marginBottom: 22,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 16,
   },
 
   topRow: {
@@ -204,60 +234,62 @@ const styles = StyleSheet.create({
   },
 
   avatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: "#232323",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#7B61FF",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 14,
+    marginRight: 12,
   },
 
   anonymousAvatar: {
-    backgroundColor: "#33204a",
+    backgroundColor: "#7B61FF",
   },
 
   username: {
-    color: "#fff",
-    fontSize: 22,
+    color: "#111",
+    fontSize: 15,
     fontWeight: "700",
   },
 
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 5,
+    marginTop: 4,
   },
 
   time: {
-    color: "#8f8f8f",
-    marginRight: 10,
-    fontSize: 15,
+    color: "#999",
+    fontSize: 12,
   },
 
   badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
-  },
-
-  badgeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginLeft: 8,
   },
 
   content: {
-    color: "#fff",
-    fontSize: 20,
-    lineHeight: 34,
-    marginTop: 24,
+    color: "#333",
+    fontSize: 15,
+    lineHeight: 24,
+    marginTop: 16,
+    marginBottom: 14,
+  },
+
+  postImage: {
+    width: "100%",
+    height: 220,
+    borderRadius: 18,
+    backgroundColor: "#F2F2F2",
   },
 
   divider: {
     height: 1,
-    backgroundColor: "#1f1f1f",
-    marginVertical: 24,
+    backgroundColor: "#F1F1F1",
+    marginVertical: 16,
   },
 
   actions: {
@@ -274,20 +306,18 @@ const styles = StyleSheet.create({
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 26,
+    marginRight: 20,
   },
 
- postImage: {
-  width: "100%",
-  aspectRatio: 1,
-  borderRadius: 20,
-  marginTop: 20,
-  backgroundColor: "#111",
-},
   actionText: {
-    color: "#fff",
-    marginLeft: 8,
-    fontSize: 18,
+    color: "#666",
+    marginLeft: 6,
+    fontWeight: "600",
   },
+  menuItem: {
+  flexDirection: "row",
+  alignItems: "center",
+  paddingVertical: 14,
+},
 });
 
