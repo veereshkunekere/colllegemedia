@@ -5,6 +5,7 @@ import {
   toggleLikePost,
   createNewPost
 } from "../services/postService";
+import * as Crypto from "expo-crypto";
 
 export const usePostStore =create((set, get) => ({
     posts: [],
@@ -21,7 +22,12 @@ export const usePostStore =create((set, get) => ({
   try {
     const response = await API.post(
       "/tweet/reportTweet",
-      { id }
+      { id },
+      {
+        headers: {
+            "Idempotency-Key": Crypto.randomUUID()
+        }
+    }
     );
 
     if(response.status==200) return true;

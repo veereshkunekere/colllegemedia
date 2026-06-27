@@ -3,6 +3,7 @@ import axios from "axios";
 import {
   getToken,
 } from "../utils/storage";
+import * as Crypto from "expo-crypto";
 
 const API = axios.create({
    baseURL:
@@ -11,8 +12,8 @@ const API = axios.create({
       : process.env.EXPO_PUBLIC_API_BASE_URL,
 
   headers: {
-    "Content-Type":
-      "application/json",
+    "Content-Type": "application/json",
+    "Idempotency-Key": Crypto.randomUUID()
   },
 });
 

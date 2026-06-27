@@ -1,5 +1,5 @@
 import API from "./api";
-
+import * as Crypto from "expo-crypto";
 export const getFeedPosts = async (cursor = null) => {
     try {
       const url = cursor
@@ -46,8 +46,8 @@ export const createNewPost =
           formData,
           {
             headers: {
-              "Content-Type":
-                "multipart/form-data",
+              "Content-Type": "multipart/form-data",
+              "Idempotency-Key": Crypto.randomUUID()
             },
           }
         );

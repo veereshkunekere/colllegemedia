@@ -169,6 +169,7 @@ export default function Create() {
         placeholder="What's happening on campus?"
         placeholderTextColor="#040404"
         multiline
+        maxLength={280}
         value={content}
         onChangeText={setContent}
         style={styles.input}

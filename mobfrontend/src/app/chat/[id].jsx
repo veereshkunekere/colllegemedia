@@ -12,18 +12,23 @@ import {
   Platform,
   TouchableOpacity,
   Text,
+  Image,
+  StyleSheet,
 } from "react-native";
 
+
 import 'react-native-get-random-values';
-import { v4 as uuidv4 } from 'uuid';
+import * as Crypto from "expo-crypto";
+
 
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-import { useLocalSearchParams }
+import { useLocalSearchParams, useRouter }
   from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 import {
   useChatStore,
@@ -40,10 +45,13 @@ import {
   getSocket,
 } from "../../services/socket";
 
-export default function ChatRoom() {
 
+export default function ChatRoom() {
+  const { receiverId } = useLocalSearchParams();
   const { id } =
     useLocalSearchParams();
+
+  const router = useRouter();
 
   const insets =
     useSafeAreaInsets();
@@ -65,7 +73,24 @@ export default function ChatRoom() {
     openConversation,
 
     sendMessage,
+    activeConversation, 
+    currentUserId,
+    onlineUsers,
   } = useChatStore();
+ 
+
+const otherUser =
+  activeConversation?.participants?.find(
+    p => String(p._id) !== String(currentUserId)
+  );
+
+// TODO: wire up real presence once online/offline tracking is implemented
+// (see useChatStore's onlineUsers + the "Online/offline flow" plan).
+const isOtherUserOnline =
+  otherUser?._id
+    ? onlineUsers?.includes?.(String(otherUser._id))
+    : false;
+
 
   useEffect(() => {
 
@@ -117,7 +142,7 @@ export default function ChatRoom() {
         previousChainLength: 0,
 
         clientTempId:
-          uuidv4(),
+          Crypto.randomUUID(),
       };
 
       setText("");
@@ -125,13 +150,22 @@ export default function ChatRoom() {
       await sendMessage(
         payload
       );
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd(
+          {
+            animated: true,
+          }
+        );
+      }, 100);
     };
 
   return (
     <SafeAreaView
       style={{
         flex: 1,
+        backgroundColor: "#fff",
       }}
+      edges={["bottom", "left", "right"]}
     >
       <KeyboardAvoidingView
         style={{
@@ -143,6 +177,44 @@ export default function ChatRoom() {
             : "height"
         }
       >
+        {/* WhatsApp-style header */}
+        <View
+          style={[
+            styles.header,
+            { paddingTop: insets.top + 10 },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="chevron-back" size={26} color="#0a0a0a" />
+          </TouchableOpacity>
+
+          <View style={styles.avatar}>
+            {otherUser?.profilePicture ? (
+              <Image
+                source={{ uri: otherUser.profilePicture }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <Text style={styles.avatarInitial}>
+                {otherUser?.username?.[0]?.toUpperCase() || "?"}
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.headerName} numberOfLines={1}>
+              {otherUser?.username || "User"}
+            </Text>
+            <Text style={styles.headerStatus} numberOfLines={1}>
+              {isOtherUserOnline ? "Online" : "Offline"}
+            </Text>
+          </View>
+        </View>
+
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -174,13 +246,7 @@ export default function ChatRoom() {
           }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd(
-              {
-                animated: true,
-              }
-            )
-          }
+          
         />
 
         <View
@@ -236,3 +302,59 @@ export default function ChatRoom() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EAEAEA",
+    backgroundColor: "#fff",
+  },
+
+  backButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    marginRight: 4,
+  },
+
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#EFEFEF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+    overflow: "hidden",
+  },
+
+  avatarImage: {
+    width: 42,
+    height: 42,
+  },
+
+  avatarInitial: {
+    color: "#0a0a0a",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  headerTextWrap: {
+    flex: 1,
+  },
+
+  headerName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0a0a0a",
+  },
+
+  headerStatus: {
+    fontSize: 12,
+    color: "#8e8e8e",
+    marginTop: 1,
+  },
+});

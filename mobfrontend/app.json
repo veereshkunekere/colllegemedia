@@ -7,7 +7,8 @@
     "scheme": "mobfrontend",
     "userInterfaceStyle": "automatic",
     "android": {
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "package": "com.veereshkunakere.mobfrontend"
     },
     "plugins": [
       "expo-router",
@@ -18,6 +19,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "171c655d-8eaa-4fe1-90e8-9ec6a2d68c94"
+      }
     }
   }
 }

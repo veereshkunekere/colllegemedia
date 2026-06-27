@@ -17,18 +17,6 @@ import {
 }
 from
 "@noble/hashes/sha2";
-import { use } from "react";
-
-
-console.log(
- "GLOBAL CRYPTO",
- global.crypto
-);
-
-console.log(
- "GET RANDOM VALUES",
- global.crypto?.getRandomValues
-);
 
 export const generateIdentityKeys = async(user)=>{
 
@@ -60,7 +48,6 @@ export const generateIdentityKeys = async(user)=>{
    publicKey
   );
 
-  console.log("pubKey",publicKey,"privKey",privateKey);
 
   return {
    publicKey,

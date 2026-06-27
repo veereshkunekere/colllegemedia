@@ -152,11 +152,21 @@ async function processIncomingMessage(message,myId,socket,set,get,skipUI=false){
                 currentReceive++;
               }
               const messageKey = deriveMessageKey( currentChain);
-              const plaintext = decryptMessage(
-                                 message.cipherText,
-                                 message.nonce,
-                                 messageKey
-                                );
+             let plaintext;
+try {
+  plaintext = decryptMessage(message.cipherText, message.nonce, messageKey);
+} catch (e) {
+  console.log("[DECRYPT] failed for msg", message._id, "— legacy/corrupt message");
+  message.plaintext = "[Message could not be decrypted]";
+  message.decryptFailed = true;
+  await saveMessage(message, myId);
+  // still advance the ratchet so future messages aren't broken
+  const nextReceiveChain = advanceChainKey(currentChain);
+  await saveReceiveState(message.conversationId, nextReceiveChain, message.messageNumber, myId);
+  // update UI
+  set(state => ({ messages: [...state.messages, message] }));
+  return message;
+}
               socket.emit( "messageDelivered", { messageId: message._id, });
 
 
@@ -204,7 +214,7 @@ async function processIncomingMessage(message,myId,socket,set,get,skipUI=false){
 }
 
 if (
-  get().activeConversation ===
+  get().activeConversation._id ===
   message.conversationId
 ) {
   setTimeout(() => {
@@ -693,7 +703,7 @@ processSendQueue: async () => {
           console.log("[SOCKET] activeConversation", get().activeConversation);
           
           // Ignore my own message
-          if ( message.conversationId !== get().activeConversation ) {
+          if ( message.conversationId !== get().activeConversation._id ) {
             console.log("[SOCKET] message not for active conversation, ignoring");
             return;
           }
@@ -791,6 +801,21 @@ processSendQueue: async () => {
     );
   }
 );
+
+socket.on("userOnline", (userId) => {
+  set((state) => ({
+    onlineUsers: state.onlineUsers.includes(userId)
+      ? state.onlineUsers
+      : [...state.onlineUsers, userId],
+  }));
+});
+
+socket.on("userOffline", (userId) => {
+  set((state) => ({
+    onlineUsers: state.onlineUsers.filter((id) => id !== userId),
+  }));
+});
+
       },
 
 
@@ -880,6 +905,9 @@ processSendQueue: async () => {
               let chain = await deriveInitialChainKeys( rootKey );
               let sendChainKey = chain.sendChainKey;
               let receiveChainKey = chain.receiveChainKey;
+
+                console.log("CREATED BY", conversation?.createdBy, "MY ID", myId, "WILL SWAP", String(myId) !== String(conversation?.createdBy));
+
               if(String(myId) !== String(conversation.createdBy)){
                   const temp = sendChainKey;
                   sendChainKey = receiveChainKey; 
@@ -898,11 +926,6 @@ console.log(
 
 
  set({sharedSecret});
-
-        set({
-          activeConversation:
-            conversationId,
-        });
 
         console.log(
  "MY ID",
@@ -1067,7 +1090,7 @@ set({messages: [] });
 
   if (
     socket &&
-    conversationId === get().activeConversation
+    conversationId === get().activeConversation._id
   ) {
 
     console.log(
