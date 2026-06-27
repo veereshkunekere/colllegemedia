@@ -13,8 +13,11 @@ const authController = {};
 // ─── VERIFY EMAIL (Signup step 1) ────────────────────────────────────────────
 // Creates an unverified user (publicKey: null) and sends OTP.
 // No key generation happens here — keys are generated on the OTP screen.
-authController.verifyEmail = async (req, res) => {
-    const {
+authController.verifyEmail = async (req, res) => {   
+
+    try {
+        
+         const {
         username,
         email,
         password,
@@ -32,7 +35,7 @@ authController.verifyEmail = async (req, res) => {
 
     // If an unverified record exists and its OTP is still valid, tell the
     // client there is no need to resend — just use the existing OTP window.
-    const pendingUser = await User.findOne({ email, isVerified: false });
+    const pendingUser = await User.findOne({ email, isVerified: false }).select("-password -verificationOtp");
     if (pendingUser && pendingUser.verificationOtpExpires > Date.now()) {
         // Return the pending user so the frontend can store it in state
         return res.status(201).json({
@@ -43,8 +46,6 @@ authController.verifyEmail = async (req, res) => {
         // Stale unverified record — remove it so we can create a fresh one
         await User.deleteOne({ email, isVerified: false });
     }
-
-    try {
         // publicKey is intentionally null until OTP is verified
         const newUser = new User({
             username,
@@ -93,7 +94,9 @@ authController.verifyEmail = async (req, res) => {
 // Receives publicKey from the frontend (generated on the OTP screen),
 // saves it together with isVerified = true, and returns a JWT.
 authController.verifyOtp = async (req, res) => {
-    const { email, otp, publicKey } = req.body;
+    try {
+
+         const { email, otp, publicKey } = req.body;
 
     if (!publicKey) {
         return res.status(400).json({ message: "Public key required" });
@@ -132,6 +135,12 @@ authController.verifyOtp = async (req, res) => {
     user.password = undefined;
 
     return res.status(200).json({ message: "Email verified successfully", token, user });
+        
+    } catch (error) {
+        console.log("error at verifyEmail",error);
+        return res.status(500).json({message:"serverside error"});
+    }
+   
 };
 
 // ─── VERIFY TOKEN ─────────────────────────────────────────────────────────────
@@ -150,7 +159,8 @@ authController.verifyToken = async (req, res) => {
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
 // Existing login behaviour is unchanged.
 authController.Login = async (req, res) => {
-    const { email, password } = req.body;
+   try {
+     const { email, password } = req.body;
     console.log("Login attempt for email:", email);
     if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
@@ -182,6 +192,10 @@ authController.Login = async (req, res) => {
     });
 
     return res.status(200).json({ message: "Login successful", token, user });
+   } catch (error) {
+    console.log("error in login",error);
+     return res.status(500).json({message:"server side error"})
+   }
 };
 
 // ─── LOGOUT ───────────────────────────────────────────────────────────────────
@@ -192,7 +206,8 @@ authController.Logout = (req, res) => {
 
 // ─── FORGOT PASSWORD ──────────────────────────────────────────────────────────
 authController.ForgotPassword = async (req, res) => {
-    const { email } = req.body;
+   try {
+     const { email } = req.body;
 
     if (!email) {
         return res.status(400).json({ message: "Email is required" });
@@ -224,6 +239,11 @@ authController.ForgotPassword = async (req, res) => {
         console.error("Error sending reset email:", error);
         return res.status(500).json({ message: "Internal server error" });
     }
+   } catch (error) {
+    console.log("error in forgotpassword",error);
+    return res.status(500).json({ message: "Internal server error" });
+
+   }
 };
 
 // ─── RESET PASSWORD ───────────────────────────────────────────────────────────
@@ -245,7 +265,7 @@ authController.ResetPassword = async (req, res) => {
         return res.status(400).json({ message: "Invalid or expired token" });
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
         return res.status(400).json({ message: "Password must be at least 6 characters long" });
     }
 

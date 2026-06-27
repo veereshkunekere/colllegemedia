@@ -16,10 +16,11 @@ const conversationRoute=require("./routers/conversation.router");
 
 const socketManager=require('./controllers/socketManager');
 const { meta } = require('./util/nodemailer');
+const {authLimiter,apiLimiter} = require("./middleware/rateLimiter.middleware")
 
 const app=express();
 const port=process.env.PORT || 3000;
-const originLink=process.env.NODE_ENV==="production" ? "https://colllegemedia-froontend.onrender.com":"http://localhost:8081";
+const originLink = process.env.NODE_ENV==="production" ? process.env.FRONTEND_WEB_URL : process.env.LOCAL_IP_URL ;
 console.log("CORS Origin Link:", originLink);
 app.use(cors({
     // origin:"http://localhost:5173", // Replace with your frontend URL in development
@@ -27,9 +28,13 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true, // Allow cookies to be sent with requests
 }));
-app.use(bodyParser.json({limit: '50mb'}));
-app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));  
+app.use(require("helmet")());
+app.use(require("hpp")());
+app.use(bodyParser.json({limit: '5mb'}));
+app.use(bodyParser.urlencoded({ extended: true, limit: '5mb' }));  
 app.use(cookieParser());
+
+app.use("/api", apiLimiter);
 
 const mounts = [
     { path: "/api/user", router: userRoute },

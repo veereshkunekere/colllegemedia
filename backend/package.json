@@ -24,7 +24,13 @@
     "crypto": "^1.0.1",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "express-idempotency-middleware": "^1.0.2",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.5.2",
+    "express-validator": "^7.3.2",
     "fs": "^0.0.1-security",
+    "helmet": "^8.2.0",
+    "hpp": "^0.2.3",
     "http": "^0.0.1-security",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.17.0",
@@ -33,6 +39,7 @@
     "nodemailer": "^7.0.3",
     "path": "^0.12.7",
     "path-to-regexp": "^8.2.0",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "xss-clean": "^0.1.4"
   }
 }

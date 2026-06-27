@@ -2,12 +2,13 @@ const tweetController = require("../controllers/tweet.controllers");
 const auth = require('../middleware/auth.middleware');
 const {uploadTweetImage}=require("../middleware/upload")
 const Router=require("express").Router();
-
+const idempotency =require("../middleware/idompotency.middleware");
 // Router.post("/",auth,upload.array(),tweetController.makeAtweet);
 
 Router.post(
   "/create",
   auth,
+  idempotency,
   uploadTweetImage,          // <-- now .array()
   tweetController.makeAtweet
 );
@@ -18,8 +19,11 @@ Router.post("/tweetlike",auth,tweetController.likeATweet);
 
 Router.get("/comments/:tweetId",auth,tweetController.getComments);
 
-Router.post("/comment",auth,tweetController.addComment);
+Router.post("/comment",auth,idempotency,tweetController.addComment);
 
-Router.post("/reportTweet",auth,tweetController.reportTweet);
+Router.post("/reportTweet",auth,idempotency,tweetController.reportTweet);
+
+Router.get("/user/:userId",auth,tweetController.getTweetsByUser);
+
 
 module.exports=Router;

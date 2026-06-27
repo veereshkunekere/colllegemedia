@@ -1,13 +1,8 @@
 const User=require("../models/user.models");
-const crypto=require("crypto");
-const jwt=require("jsonwebtoken");
 const Tweet=require("../models/tweet.models");
-const multer = require('multer'); 
-const upload = require("../middleware/upload"); 
 const fs=require('fs');
 const tweetController={};
 const {uploadImage}=require("../util/cloudinary")
-const path=require("path");
 const mongoose =require("mongoose");
 
 tweetController.makeAtweet = async (req, res) => {
@@ -58,6 +53,13 @@ tweetController.makeAtweet = async (req, res) => {
 
     } catch (error) {
         console.error("Error posting tweet:", error);
+        if (req.files) {
+    req.files.forEach(file => {
+        if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+        }
+    });
+}
         // optional: clean up already-uploaded Cloudinary images on failure
         return res.status(500).json({ message: "Internal server error" });
     }
@@ -72,6 +74,15 @@ tweetController.getTweets=async (req,res)=>{
 
       console.log("Fetching tweets with cursor:", cursor);
       let query = {};
+
+      if (
+    cursor &&
+    !mongoose.Types.ObjectId.isValid(cursor)
+) {
+    return res.status(400).json({
+        message: "Invalid cursor"
+    });
+}
 
       if (cursor) {
         query._id = {
@@ -153,6 +164,26 @@ res.status(200).json({
     }
 }
 
+tweetController.getTweetsByUser = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+ 
+        if (!userId) {
+            return res.status(400).json({ message: "userId is required" });
+        }
+ 
+        let tweets = await Tweet.find({ userId, isAnonymous: { $ne: true } })
+            .sort({ createdAt: -1 });
+ 
+        tweets = tweets.map((t) => t.toObject());
+ 
+        return res.status(200).json({ message: "User posts fetched", tweets });
+    } catch (error) {
+        console.error("Error fetching user posts:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
 tweetController.likeATweet=async (req,res)=>{
     console.log(req.body)
     const tweetid=req.body.id
@@ -163,7 +194,16 @@ tweetController.likeATweet=async (req,res)=>{
             return res.status(404).json({message: "User not found"});
         }
         const tweet=await Tweet.findById(tweetid);
-        if(!tweet.likes.includes(user._id)){
+        if(!tweet){
+           return res.status(404).json({
+        message: "Tweet not found"
+    });
+        }
+        const alreadyLiked =tweet.likes.some(id =>
+         id.toString() ===
+         user._id.toString()
+        );
+        if(!alreadyLiked){
            tweet.likes.push(user._id);
         }else(
             tweet.likes=tweet.likes.filter((usr)=>usr.toString()!==user._id.toString())
@@ -318,12 +358,16 @@ tweetController.reportTweet=async (req,res)=>{
         }
         console.log(user);
         const tweet=await Tweet.findById(id);
-        tweet.reports.push(userId);
-        await tweet.save();
+        if(!tweet) return res.status(404).json({message:"tweet not found"});
+        await Tweet.findByIdAndUpdate(id,{ $addToSet: { reports: userId}});
         res.status(200).json({ message: "Tweet reported", tweet });
         console.log(tweet);
     } catch (error) {
-        
+         console.error(error);
+
+   return res.status(500).json({
+      message: "Internal server error"
+   });
     }
 }
 

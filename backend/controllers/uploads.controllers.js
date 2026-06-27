@@ -180,4 +180,14 @@ uploadsController.deleteUploads= async (req, res) => {
     }
 }
 
+uploadsController.getUploadsByUserId = async (req, res) => {
+    const userId = req.params.userId;
+    try {
+        const uploads = await Upload.find({ uploadedBy: userId }).sort({ createdAt: -1 });
+        return res.status(200).json({ message: "User uploads fetched", uploads });
+    } catch (error) {
+        console.error("Error fetching by user:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}
 module.exports=uploadsController

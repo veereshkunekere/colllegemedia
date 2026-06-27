@@ -138,6 +138,16 @@ const socketManager = (server) => {
 
     try {
 
+      const conversation =
+  await ConversationModel.findOne({
+    _id: conversationId,
+    participants: socket.userId
+  });
+
+if (!conversation) {
+  return;
+}
+
       const updated =
         await MessageModel.updateMany(
           {
@@ -232,15 +242,33 @@ const socketManager = (server) => {
         socket.on("messageDelivered", async ({ messageId }) => {
 
           try {
-             const updated = await MessageModel.findByIdAndUpdate(
-                                                messageId,
-                                              {
-                                                delivered: true,
-                                                deliveredAt:
-                                                  new Date(),
-                                              },
-                                              { new: true }
-                                            );
+
+            const message =
+  await MessageModel.findById(messageId);
+
+if (!message) return;
+
+if (
+  message.receiverId.toString() !==
+  socket.userId.toString()
+) {
+  return;
+}
+
+             const updated =
+  await MessageModel.findOneAndUpdate(
+    {
+      _id: messageId,
+      receiverId: socket.userId,
+      delivered: false
+    },
+    {
+      delivered: true,
+      deliveredAt: new Date()
+    },
+    { new: true }
+  );
+                                 
              if (!updated) return;
 
            emitToConversation(

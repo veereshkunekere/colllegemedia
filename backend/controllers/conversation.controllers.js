@@ -63,19 +63,15 @@ conversationControllers.createOrGetConversation = async (req, res) => {
 
       // FIND EXISTING
       // CONVERSATION
-      let conversation =
-        await ConversationModel.findOne(
-          {
-            participants: {
-              $all: [
-                myId,
-                receiverId,
-              ],
+      const myObjectId = new mongoose.Types.ObjectId(myId);
+const receiverObjectId = new mongoose.Types.ObjectId(receiverId);
 
-              $size: 2,
-            },
-          }
-        );
+let conversation = await ConversationModel.findOne({
+  participants: {
+    $all: [myObjectId, receiverObjectId],
+    $size: 2
+  }
+});
 
       // CREATE IF NOT EXISTS
 

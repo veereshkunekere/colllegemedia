@@ -162,10 +162,10 @@ messagesControllers.sendMessage = async (req, res) => {
         nonce
       } = req.body;
 
-      console.log(nonce);
       if (
         !conversationId ||
-        !cipherText 
+        !cipherText ||
+        !nonce
       ) {
         return res
           .status(400)
@@ -186,6 +186,12 @@ messagesControllers.sendMessage = async (req, res) => {
           .json({
             error:
               "Conversation not found",
+          });
+      }
+
+      if (!conversation.participants.some( p => p.toString() === senderId.toString())) {
+          return res.status(403).json({
+            error: "Not a participant of this conversation"
           });
       }
 
@@ -229,11 +235,12 @@ messagesControllers.sendMessage = async (req, res) => {
 
       // UNREAD COUNT
 
-      const currentUnread = conversation.unreadCounts.get( receiverId.toString() ) || 0;
-
-      conversation.unreadCounts.set( receiverId.toString(), currentUnread + 1 );
-
-      await conversation.save();
+     await ConversationModel.findByIdAndUpdate(conversationId, {
+  lastMessage: "Encrypted message",
+  lastMessageSender: senderId,
+  lastMessageAt: new Date(),
+  $inc: { [`unreadCounts.${receiverId.toString()}`]: 1 },
+});
 
       emitToConversation( conversationId, "newMessage", newMessage );
 

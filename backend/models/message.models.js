@@ -64,5 +64,14 @@ const MessageSchema=new mongoose.Schema({
 },{timestamps:true});
 
 MessageSchema.index({ conversationId: 1, createdAt: -1 }); 
+MessageSchema.index(
+{
+  conversationId:1,
+  senderId:1,
+  messageNumber:1
+},
+{
+  unique:true
+});
 const MessageModel=mongoose.model("message",MessageSchema);
 module.exports=MessageModel;

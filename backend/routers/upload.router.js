@@ -7,7 +7,7 @@ Router.post("/upload-file",auth,uploadFile,uploadsController.upload);
 
 Router.get("/type/:cat",auth,uploadsController.getUploadsByCategeory);
 
-Router.get("/user/:uid",auth,uploadsController.getUploadsByUserId);
+Router.get("/user/:userId",auth,uploadsController.getUploadsByUserId);
 
 Router.get("/",auth,uploadsController.getUserUploads);
 
