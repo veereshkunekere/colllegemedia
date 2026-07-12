@@ -104,7 +104,7 @@ export default function EditProfile() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: "#050505" }}
+      style={{ flex: 1, backgroundColor: "#050505",marginTop: 40 }}
       contentContainerStyle={{ padding: 16 }}
     >
       {/* Header */}

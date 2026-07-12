@@ -59,3 +59,39 @@ export const updatePublicKey = async (publicKey) => {
     const res = await API.put("/user/public-key", { publicKey });
     return res.data;
 };
+
+// ─── PASSWORD RESET (3-step flow) ───────────────────────────────────────────
+
+// Step 1: sends an OTP to the user's email.
+export const forgotPasswordRequest = async (email) => {
+    try {
+        const response = await API.post("/auth/forgot-password", { email });
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || error;
+    }
+};
+
+// Step 2: verifies the OTP and returns a short-lived resetToken (JWT,
+// valid 5 minutes) that must be used for the actual password change.
+export const verifyResetOtpRequest = async (email, otp) => {
+    try {
+        const response = await API.post("/auth/verify-reset-otp", { email, otp });
+        return response.data; // { message, resetToken }
+    } catch (error) {
+        throw error.response?.data || error;
+    }
+};
+
+// Step 3: exchanges the resetToken + new password for a completed reset.
+export const resetPasswordRequest = async (resetToken, newPassword) => {
+    try {
+        const response = await API.post("/auth/reset-password", {
+            resetToken,
+            newPassword,
+        });
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || error;
+    }
+};

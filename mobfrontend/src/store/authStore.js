@@ -7,6 +7,9 @@ import {
   verifyToken,
   verifyOtpRequest,
   updatePublicKey,
+  forgotPasswordRequest,
+  verifyResetOtpRequest,
+  resetPasswordRequest,
 } from "../services/authService";
 
 import {
@@ -30,6 +33,11 @@ export const useAuthStore = create((set, get) => ({
   token: null,
   loading: false,
   isCheckingAuth: true,
+
+  // Holds the email + short-lived resetToken between the OTP-verify and
+  // reset-password screens. Never persisted to storage — memory only.
+  resetToken: null,
+  resetEmail: null,
 
   // ─── SIGNUP ────────────────────────────────────────────────────────────────
   // Sends user details to /auth/verify-email with publicKey: null.
@@ -161,6 +169,86 @@ export const useAuthStore = create((set, get) => ({
       };
     } finally {
       set({ loading: false });
+    }
+  },
+
+  // ─── FORGOT PASSWORD (reset step 1) ─────────────────────────────────────────
+  // Requests an OTP be sent to the user's email. Stashes the email in state
+  // so later steps don't need to pass it around via route params.
+  forgotPassword: async (email) => {
+    try {
+      set({ loading: true });
+
+      const data = await forgotPasswordRequest(email);
+
+      set({ resetEmail: email });
+
+      return { success: true, message: data.message };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Failed to send reset OTP",
+      };
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  // ─── VERIFY RESET OTP (reset step 2) ────────────────────────────────────────
+  // Verifies the OTP and stores the short-lived resetToken returned by the
+  // backend (valid 5 minutes) for use by resetPassword().
+  verifyResetOtp: async (otp) => {
+    try {
+      set({ loading: true });
+
+      const email = get().resetEmail;
+      if (!email) {
+        return {
+          success: false,
+          message: "Reset session lost. Please request a new OTP.",
+        };
+      }
+
+      const data = await verifyResetOtpRequest(email, otp);
+
+      set({ resetToken: data.resetToken });
+
+      return { success: true, message: data.message };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "OTP verification failed",
+      };
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  // ─── RESET PASSWORD (reset step 3) ──────────────────────────────────────────
+  // Uses the resetToken obtained in verifyResetOtp(). Clears reset state
+  // afterwards regardless of outcome — a resetToken is single-use.
+  resetPassword: async (newPassword) => {
+    try {
+      set({ loading: true });
+
+      const resetToken = get().resetToken;
+      if (!resetToken) {
+        return {
+          success: false,
+          message: "Reset session expired. Please start over.",
+        };
+      }
+
+      const data = await resetPasswordRequest(resetToken, newPassword);
+
+      return { success: true, message: data.message };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Password reset failed",
+      };
+    } finally {
+      set({ loading: false, resetToken: null, resetEmail: null });
     }
   },
 

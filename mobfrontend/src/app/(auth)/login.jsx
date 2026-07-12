@@ -160,6 +160,24 @@ export default function Login() {
           Don’t have an
           account? Register
         </Text>
+         
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() =>
+          router.push(
+            "/forgotPassword"
+          )
+        }
+      >
+        <Text
+          style={
+            styles.linkText
+          }
+        >
+         Forgot your password? Reset
+        </Text>
+         
       </TouchableOpacity>
     </View>
   );
