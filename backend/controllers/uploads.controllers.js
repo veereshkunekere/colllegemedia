@@ -110,13 +110,14 @@ uploadsController.getUserUploads=async (req,res)=>{
     return res.status(200).json({message:"uploades are sent",uploads})
 
    } catch (error) {
-    
+    console.error("Error fetching user uploads:", error);
+    return res.status(500).json({ message: "Internal server error" });
    }
 }
 
 uploadsController.getUploadByUploadId=async (req,res)=>{
    
-   const id=req.params
+   const id=req.params.id
    console.log("triked")
    
    try {
@@ -129,7 +130,8 @@ uploadsController.getUploadByUploadId=async (req,res)=>{
     return res.status(200).json({message:"uploades are sent",uploads})
 
    } catch (error) {
-    
+    console.error("Error fetching user uploads:", error);
+    return res.status(500).json({ message: "Internal server error" });
    }
 }
 
@@ -141,17 +143,6 @@ uploadsController.getUploadsByCategeory= async (req, res) => {
         return res.status(200).json({ message: "Category uploads fetched", uploads });
     } catch (error) {
         console.error("Error fetching by category:", error);
-        return res.status(500).json({ message: "Internal server error" });
-    }
-}
-
-uploadsController.getUploadsByUserId= async (req, res) => {
-    const userId = req.params.uid;
-    try {
-        const uploads = await Upload.find({ uploadedBy: userId });
-        return res.status(200).json({ message: "User uploads fetched", uploads });
-    } catch (error) {
-        console.error("Error fetching by user:", error);
         return res.status(500).json({ message: "Internal server error" });
     }
 }

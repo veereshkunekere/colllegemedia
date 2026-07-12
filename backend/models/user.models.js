@@ -19,14 +19,31 @@ const UserSchema = new mongoose.Schema({
         required: true
     },
     links: [String],
-    resetPasswordToken: {
+
+    // ─── PASSWORD RESET (OTP → short-lived JWT reset token) ────────────────
+    // resetPasswordOtp is cleared as soon as it's verified (one-time use).
+    // resetPasswordOtpVerified guards ResetPassword so a reset_token can
+    // only be redeemed once, even though the JWT itself stays valid for
+    // its full 5-minute window.
+    resetPasswordOtp: {
         type: String,
         default: null
     },
-    resetPasswordExpires: {
+    resetPasswordOtpExpires: {
         type: Date,
         default: null
     },
+    resetPasswordOtpVerified: {
+        type: Boolean,
+        default: false
+    },
+    // Any JWT issued before this timestamp is rejected by auth.middleware —
+    // this is what "logs out other sessions" after a password reset.
+    passwordChangedAt: {
+        type: Date,
+        default: null
+    },
+
     verificationOtp: {
         type: String,
         default: null

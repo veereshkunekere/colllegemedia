@@ -4,7 +4,7 @@ module.exports = async (req, res, next) => {
     try {
         const user = await User.findById(req.user);
 
-        if (!user || user.role !== "admin") {
+        if (!user || user.role !== "hod" && user.role !== "principal") {
             return res.status(403).json({
                 message: "Access denied. Admin only."
             });

@@ -8,6 +8,10 @@ function generateOtp() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+function hashOtp(otp) {
+    return crypto.createHash("sha256").update(otp).digest("hex");
+}
+
 const authController = {};
 
 // ─── VERIFY EMAIL (Signup step 1) ────────────────────────────────────────────
@@ -204,77 +208,138 @@ authController.Logout = (req, res) => {
     return res.status(200).json({ message: "Logged out successfully" });
 };
 
-// ─── FORGOT PASSWORD ──────────────────────────────────────────────────────────
+// ─── FORGOT PASSWORD (reset step 1) ──────────────────────────────────────────
+// Generates an OTP, stores its hash + a 10-minute expiry, emails the plain
+// OTP to the user. Always responds with the same message regardless of
+// whether the account exists, to avoid leaking which emails are registered.
 authController.ForgotPassword = async (req, res) => {
-   try {
-     const { email } = req.body;
-
-    if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-    }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-        return res.status(400).json({ message: "User not found" });
-    }
-
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    const resetTokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
-
-    user.resetPasswordToken = resetTokenHash;
-    user.resetPasswordExpires = Date.now() + 3600000;
-    await user.save();
-
-    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
-    const message = `To reset your password, make a request to: \n\n${resetUrl}`;
-
     try {
-        await transporter.sendMail({
-            to: user.email,
-            subject: "Password Reset Request",
-            text: message,
-        });
-        return res.status(200).json({ message: "Password reset email sent" });
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ message: "Email is required" });
+        }
+
+        const genericResponse = {
+            message: "If an account exists for this email, a reset OTP has been sent",
+        };
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(200).json(genericResponse);
+        }
+
+        const otp = generateOtp();
+
+        user.resetPasswordOtp = hashOtp(otp);
+        user.resetPasswordOtpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+        user.resetPasswordOtpVerified = false;
+        await user.save();
+
+        try {
+            await transporter.sendMail({
+                to: user.email,
+                subject: "Password Reset OTP",
+                text: `Your password reset OTP is: ${otp}. It expires in 10 minutes.`,
+            });
+        } catch (mailError) {
+            console.error("Error sending reset OTP email:", mailError);
+            return res.status(500).json({ message: "Error sending reset email" });
+        }
+
+        return res.status(200).json(genericResponse);
     } catch (error) {
-        console.error("Error sending reset email:", error);
+        console.log("error in forgotPassword", error);
         return res.status(500).json({ message: "Internal server error" });
     }
-   } catch (error) {
-    console.log("error in forgotpassword",error);
-    return res.status(500).json({ message: "Internal server error" });
-
-   }
 };
 
-// ─── RESET PASSWORD ───────────────────────────────────────────────────────────
-authController.ResetPassword = async (req, res) => {
-    const { token } = req.params;
-    const { newPassword } = req.body;
-
-    if (!token || !newPassword) {
-        return res.status(400).json({ message: "Token and password are required" });
-    }
-
-    const resetTokenHash = crypto.createHash("sha256").update(token).digest("hex");
-    const user = await User.findOne({
-        resetPasswordToken: resetTokenHash,
-        resetPasswordExpires: { $gt: Date.now() },
-    });
-
-    if (!user) {
-        return res.status(400).json({ message: "Invalid or expired token" });
-    }
-
-    if (newPassword.length < 8) {
-        return res.status(400).json({ message: "Password must be at least 6 characters long" });
-    }
-
-    user.password = newPassword;
-    user.resetPasswordToken = null;
-    user.resetPasswordExpires = null;
-
+// ─── VERIFY RESET OTP (reset step 2) ─────────────────────────────────────────
+// Validates the OTP, marks it consumed (one-time use), and issues a
+// short-lived JWT reset token that ResetPassword will require.
+authController.VerifyResetOtp = async (req, res) => {
     try {
+        const { email, otp } = req.body;
+
+        if (!email || !otp) {
+            return res.status(400).json({ message: "Email and OTP are required" });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user || !user.resetPasswordOtp) {
+            return res.status(400).json({ message: "Invalid or expired OTP" });
+        }
+
+        if (user.resetPasswordOtpExpires < Date.now()) {
+            return res.status(400).json({ message: "OTP expired" });
+        }
+
+        if (hashOtp(otp) !== user.resetPasswordOtp) {
+            return res.status(400).json({ message: "Invalid OTP" });
+        }
+
+        // Consume the OTP immediately so it can't be reused
+        user.resetPasswordOtp = null;
+        user.resetPasswordOtpVerified = true;
         await user.save();
+
+        const resetToken = jwt.sign(
+            { id: user._id, purpose: "password_reset" },
+            process.env.JWT_SECRET,
+            { expiresIn: "5m" }
+        );
+
+        return res.status(200).json({ message: "OTP verified", resetToken });
+    } catch (error) {
+        console.log("error in verifyResetOtp", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+// ─── RESET PASSWORD (reset step 3) ───────────────────────────────────────────
+// Requires the short-lived resetToken from VerifyResetOtp, not a URL param.
+// Also requires resetPasswordOtpVerified to still be true, so the same
+// reset_token can't be redeemed twice even within its 5-minute JWT window.
+authController.ResetPassword = async (req, res) => {
+    try {
+        const { resetToken, newPassword } = req.body;
+
+        if (!resetToken || !newPassword) {
+            return res.status(400).json({ message: "Reset token and new password are required" });
+        }
+
+        if (newPassword.length < 8) {
+            return res.status(400).json({ message: "Password must be at least 8 characters long" });
+        }
+
+        let decoded;
+        try {
+            decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
+        } catch (err) {
+            return res.status(400).json({ message: "Invalid or expired reset token" });
+        }
+
+        if (decoded.purpose !== "password_reset") {
+            return res.status(400).json({ message: "Invalid reset token" });
+        }
+
+        const user = await User.findById(decoded.id);
+        if (!user) {
+            return res.status(400).json({ message: "User not found" });
+        }
+
+        if (!user.resetPasswordOtpVerified) {
+            return res.status(400).json({ message: "Reset token already used or invalid" });
+        }
+
+        user.password = newPassword; // hashed by the pre-save hook
+        user.resetPasswordOtpVerified = false;
+        user.resetPasswordOtpExpires = null;
+        user.passwordChangedAt = new Date(); // invalidates existing JWTs — see auth.middleware.js
+
+        await user.save();
+
         return res.status(200).json({ message: "Password reset successful" });
     } catch (error) {
         console.error("Error resetting password:", error);

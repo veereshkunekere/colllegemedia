@@ -349,6 +349,7 @@ tweetController.getComments =async (req, res) => {
 
 tweetController.reportTweet=async (req,res)=>{
     const {id,userId}=req.body;
+    userId=req.user;
      console.log("reported",id,"by",userId)
    
     try {

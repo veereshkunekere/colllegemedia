@@ -71,6 +71,16 @@ messagesControllers.getMessages = async (req, res) => {
         conversationId,
       } = req.params;
 
+      let conversation = await ConversationModel.findById(conversationId);
+      
+      if (!conversation) {  
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+
+      if (!conversation.participants.some(p => p.toString() === req.user.toString())) {
+        return res.status(403).json({ error: "Not a participant of this conversation" });
+      }
+
       const limit = 30;
 
       const cursor = req.query.cursor;

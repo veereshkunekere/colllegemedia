@@ -29,7 +29,7 @@ exports.validateSignup = [
     }),
 
     body("password")
-        .isLength({ min: 8 })
+        .isLength({ min: 8 , max: 100 })
         .withMessage("Password must be at least 8 characters"),
 
     body("role")
