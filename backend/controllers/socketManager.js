@@ -147,6 +147,9 @@ const socketManager = (server) => {
 if (!conversation) {
   return;
 }
+await ConversationModel.findByIdAndUpdate(conversationId, {
+  $set: { [`unreadCounts.${socket.userId}`]: 0 }
+});
 
       const updated =
         await MessageModel.updateMany(

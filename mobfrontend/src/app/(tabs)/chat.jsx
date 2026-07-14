@@ -6,9 +6,9 @@ import {
   SafeAreaView,
 } from "react-native";
 
-import { useEffect } from "react";
+import { useEffect,useCallback } from "react";
 
-import { useRouter } from "expo-router";
+import { useRouter,useFocusEffect } from "expo-router";
 
 import { useChatStore } from "../../store/chatStore";
 
@@ -38,9 +38,11 @@ export default function Chats() {
     router.push(`chat/${item._id}`);
   };
 
-  useEffect(() => {
+useFocusEffect(
+  useCallback(() => {
     loadConversations();
-  }, []);
+  }, [])
+);
 
   return (
     <SafeAreaView style={styles.container}>
