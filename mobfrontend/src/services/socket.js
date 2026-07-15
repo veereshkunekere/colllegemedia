@@ -4,7 +4,7 @@ import {
 import API from "./api";
 // import { useAuthStore } from "../store/authStore";
 
-
+console.log("API baseURL:", API.defaults.baseURL);
 const SOCKET_URL = API.defaults.baseURL.replace("/api","");
 console.log("Socket URL:", SOCKET_URL);
 let socket = null;

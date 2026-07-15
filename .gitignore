@@ -6,3 +6,4 @@ dist/
 /build
 .txt
 *.zip
+.gitignore

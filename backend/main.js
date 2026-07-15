@@ -21,6 +21,7 @@ const {authLimiter,apiLimiter} = require("./middleware/rateLimiter.middleware")
 const app=express();
 const port=process.env.PORT || 3000;
 const originLink = process.env.NODE_ENV==="production" ? process.env.FRONTEND_WEB_URL : process.env.LOCAL_IP_URL ;
+app.set('trust proxy', 1); // Trust the first proxy (if behind a reverse proxy)
 console.log("CORS Origin Link:", originLink);
 app.use(cors({
     // origin:"http://localhost:5173", // Replace with your frontend URL in development
