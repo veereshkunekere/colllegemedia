@@ -1,6 +1,6 @@
 const User = require("../models/user.models");
 const crypto = require("crypto");
-const transporter = require("../util/nodemailer");
+const sendMail = require("../util/sendMail");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
@@ -71,10 +71,10 @@ authController.verifyEmail = async (req, res) => {
 
         // Send OTP email
         try {
-            await transporter.sendMail({
+            await sendMail({
                 to: newUser.email,
                 subject: "Email verification",
-                text: `Your verification OTP is: ${verificationOtp}`,
+                html: `<p>Your verification OTP is: ${verificationOtp}</p>`,
             });
         } catch (mailError) {
             await User.deleteOne({ _id: newUser._id });
@@ -237,10 +237,10 @@ authController.ForgotPassword = async (req, res) => {
         await user.save();
 
         try {
-            await transporter.sendMail({
+            await sendMail({
                 to: user.email,
                 subject: "Password Reset OTP",
-                text: `Your password reset OTP is: ${otp}. It expires in 10 minutes.`,
+                html: `<p>Your password reset OTP is: ${otp}. It expires in 10 minutes.</p>`,
             });
         } catch (mailError) {
             console.error("Error sending reset OTP email:", mailError);

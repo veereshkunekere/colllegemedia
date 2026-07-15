@@ -15,7 +15,7 @@ const messageRoute=require("./routers/messages.router");
 const conversationRoute=require("./routers/conversation.router");
 
 const socketManager=require('./controllers/socketManager');
-const { meta } = require('./util/nodemailer');
+const { meta } = require('./util/sendMail');
 const {authLimiter,apiLimiter} = require("./middleware/rateLimiter.middleware")
 
 const app=express();
