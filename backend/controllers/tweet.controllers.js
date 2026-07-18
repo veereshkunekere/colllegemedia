@@ -372,4 +372,79 @@ tweetController.reportTweet=async (req,res)=>{
     }
 }
 
+tweetController.deleteTweet = async (req, res) => {
+  try {
+    const { tweetId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(tweetId)) {
+      return res.status(400).json({ message: "Invalid tweet id" });
+    }
+
+    const tweet = await Tweet.findById(tweetId);
+    if (!tweet) {
+      return res.status(404).json({ message: "Tweet not found" });
+    }
+
+    // Ownership check — only the author can delete their own tweet
+    if (tweet.userId.toString() !== req.user.toString()) {
+      return res.status(403).json({ message: "Not authorized to delete this tweet" });
+    }
+
+    // Best-effort cleanup of any uploaded images (don't fail the delete if this errors)
+    if (tweet.imageUrls && tweet.imageUrls.length > 0) {
+  const { deleteImage, extractPublicId } = require("../util/cloudinary");
+  for (const url of tweet.imageUrls) {
+    const publicId = extractPublicId(url);
+    if (publicId) {
+      await deleteImage(publicId).catch((err) =>
+        console.log("Cloudinary cleanup failed for", publicId, err.message)
+      );
+    }
+  }
+}
+
+    await Tweet.findByIdAndDelete(tweetId);
+
+    return res.status(200).json({ message: "Tweet deleted", tweetId });
+  } catch (error) {
+    console.error("Error deleting tweet:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+tweetController.deleteComment = async (req, res) => {
+  try {
+    const { tweetId, commentId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(tweetId) || !mongoose.Types.ObjectId.isValid(commentId)) {
+      return res.status(400).json({ message: "Invalid id" });
+    }
+
+    const tweet = await Tweet.findById(tweetId);
+    if (!tweet) {
+      return res.status(404).json({ message: "Tweet not found" });
+    }
+
+    const comment = tweet.comments.id(commentId);
+    if (!comment) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    if (comment.userId.toString() !== req.user.toString()) {
+      return res.status(403).json({ message: "Not authorized to delete this comment" });
+    }
+
+    comment.deleteOne(); // removes the subdocument from the array
+    await tweet.save();
+
+    return res.status(200).json({
+      message: "Comment deleted",
+      commentId,
+      commentsCount: tweet.comments.length,
+    });
+  } catch (error) {
+    console.error("Error deleting comment:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 module.exports=tweetController;

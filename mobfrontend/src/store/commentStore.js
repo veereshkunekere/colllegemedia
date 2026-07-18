@@ -4,6 +4,7 @@ import { create }
 import {
   fetchComments,
   addComment,
+  deleteComment
 } from "../services/commentService";
 
 import { usePostStore }
@@ -144,4 +145,18 @@ export const useCommentStore =
           };
         }
       },
+
+    deleteComment: async (tweetId, commentId) => {
+  const prevComments = get().comments;
+  set({ comments: prevComments.filter((c) => c._id !== commentId) }); // optimistic
+       console.log("Deleting comment with ID:", commentId);
+  try {
+    await deleteComment(tweetId, commentId);
+    return { success: true };
+  } catch (error) {
+    set({ comments: prevComments }); // rollback
+    console.log("error deleting comment", error);
+    return { success: false };
+  }
+},
   }));

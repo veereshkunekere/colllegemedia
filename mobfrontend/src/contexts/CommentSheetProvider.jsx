@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useRef, useState, useCallback } from "react";
+import { createContext, useContext, useMemo, useRef, useState, useCallback} from "react";
 import BottomSheet, {
   BottomSheetFlatList,
   BottomSheetTextInput,
@@ -10,8 +10,11 @@ import {
   StyleSheet,
   Keyboard,
   Platform,
+  Alert
 } from "react-native";
 import { useCommentStore } from "../store/commentStore";
+import { useAuthStore } from "../store/authStore";
+import { Ionicons } from "@expo/vector-icons";
 
 const CommentSheetContext = createContext();
 
@@ -23,26 +26,71 @@ export const CommentSheetProvider = ({ children }) => {
   const [commentText, setCommentText] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
-  const { comments, loadComments, createComment } = useCommentStore();
+  const { comments, loadComments, createComment, deleteComment } = useCommentStore();
+  const currentUserId = useAuthStore(
+  (state) => state.user?._id
+);
 
   const snapPoints = useMemo(() => ["65%", "85%"], []);
 
-  const handleAddComment = async () => {
-    if (!commentText.trim()) return;
-    await createComment(selectedPost._id, commentText);
-    setCommentText("");
-    // Optional: Scroll to top after posting
-    // flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-  };
+  const handleAddComment = useCallback(async () => {
+  if (!selectedPost) return;
+  if (!commentText.trim()) return;
 
-  const openComments = useCallback(async (post) => {
+  await createComment(
+    selectedPost._id,
+    commentText
+  );
+
+  setCommentText("");
+}, [commentText, createComment, selectedPost]);
+
+  const handleDeleteComment = useCallback(
+  (commentId) => {
+    Alert.alert(
+      "Delete Comment",
+      "This can't be undone. Delete this comment?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const result = await deleteComment(
+              selectedPost._id,
+              commentId
+            );
+
+            if (!result.success) {
+              Alert.alert(
+                "Error",
+                "Couldn't delete comment."
+              );
+            }
+          },
+        },
+      ]
+    );
+  },
+  [deleteComment, selectedPost]
+);
+
+  const openComments = useCallback(
+  async (post) => {
     setSelectedPost(post);
     setIsOpen(true);
+
     await loadComments(post._id);
+
     requestAnimationFrame(() => {
       bottomSheetRef.current?.snapToIndex(0);
     });
-  }, []);
+  },
+  [loadComments]
+);
 
   const closeComments = useCallback(() => {
     Keyboard.dismiss();
@@ -55,30 +103,84 @@ export const CommentSheetProvider = ({ children }) => {
     setCommentText("");
   }, []);
 
-  const renderItem = useCallback(({ item }) => (
-    <View style={styles.commentItem}>
-      <View style={styles.commentAvatar}>
-        <Text style={styles.avatarText}>
-          {(item.userId?.username || item.username || "?")[0].toUpperCase()}
-        </Text>
-      </View>
-      <View style={styles.commentBody}>
-        <Text style={styles.commentUsername}>
-          {item.userId?.username || item.username}
-        </Text>
-        <Text style={styles.commentText}>{item.content}</Text>
-        <View style={styles.commentMeta}>
-          <Text style={styles.commentTime}>2h</Text>
-          <TouchableOpacity>
-            <Text style={styles.replyBtn}>Reply</Text>
-          </TouchableOpacity>
+
+const renderItem = useCallback(
+  ({ item }) => {
+    const isOwner =
+      String(item.userId?._id) ===
+      String(currentUserId);
+
+    return (
+      <View style={styles.commentItem}>
+        <View style={styles.commentAvatar}>
+          <Text style={styles.avatarText}>
+            {(item.userId?.username ||
+              item.username ||
+              "?")[0].toUpperCase()}
+          </Text>
         </View>
+
+        <View style={styles.commentBody}>
+          <Text style={styles.commentUsername}>
+            {item.userId?.username ||
+              item.username}
+          </Text>
+
+          <Text style={styles.commentText}>
+            {item.content}
+          </Text>
+
+          <View style={styles.commentMeta}>
+            <Text style={styles.commentTime}>
+              2h
+            </Text>
+
+            <TouchableOpacity>
+              <Text style={styles.replyBtn}>
+                Reply
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.likeComment}
+        >
+          <Text
+            style={{
+              color: "#666",
+              fontSize: 11,
+            }}
+          >
+            ♡
+          </Text>
+        </TouchableOpacity>
+
+        {isOwner && (
+          <TouchableOpacity
+            onPress={() =>
+              handleDeleteComment(
+                item._id
+              )
+            }
+            hitSlop={10}
+            style={{
+              paddingLeft: 8,
+              paddingTop: 2,
+            }}
+          >
+            <Ionicons
+              name="trash-outline"
+              size={16}
+              color="#666"
+            />
+          </TouchableOpacity>
+        )}
       </View>
-      <TouchableOpacity style={styles.likeComment}>
-        <Text style={{ color: "#666", fontSize: 11 }}>♡</Text>
-      </TouchableOpacity>
-    </View>
-  ), []);
+    );
+  },
+  [currentUserId, handleDeleteComment]
+);
 
   return (
     <CommentSheetContext.Provider value={{ openComments, closeComments, selectedPost }}>

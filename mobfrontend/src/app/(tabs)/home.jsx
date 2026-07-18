@@ -5,40 +5,30 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  SafeAreaView,
 } from "react-native";
 
 import { useEffect } from "react";
 
 import { usePostStore } from "../../store/postStore";
 
-import PostCard from "../../components/feed/PostCard";
-import FeedHeader from "../../components/feed/FeedHeader";
-import TrendingChips from "../../components/feed/TrendingChips";
+import PostCard from "../../styling/components/feed/PostCard";
+import FeedHeader from "../../styling/components/feed/FeedHeader";
+
+import { Colors, Spacing, Radius, Shadows } from "../../styling/theme";
 
 export default function Home() {
   const posts = usePostStore((state) => state.posts);
-
   const loading = usePostStore((state) => state.loading);
-
-  const refreshing = usePostStore(
-    (state) => state.refreshing
-  );
-
-  const fetchPosts = usePostStore(
-    (state) => state.fetchPosts
-  );
-
-  const refreshPosts = usePostStore(
-    (state) => state.refreshPosts
-  );
+  const refreshing = usePostStore((state) => state.refreshing);
+  const fetchPosts = usePostStore((state) => state.fetchPosts);
+  const refreshPosts = usePostStore((state) => state.refreshPosts);
 
   useEffect(() => {
     fetchPosts(true);
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <FlatList
         data={posts}
         showsVerticalScrollIndicator={false}
@@ -62,22 +52,21 @@ export default function Home() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={refreshPosts}
+            tintColor={Colors.light.accent}
           />
         }
         ListFooterComponent={
           loading ? (
             <ActivityIndicator
               size="large"
-              color="#7B61FF"
-              style={{ marginVertical: 20 }}
+              color={Colors.light.accent}
+              style={{ marginVertical: Spacing.xl }}
             />
           ) : null
         }
         ListEmptyComponent={
           !loading && (
-            <Text style={styles.emptyText}>
-              No Posts Yet
-            </Text>
+            <Text style={styles.emptyText}>No Posts Yet</Text>
           )
         }
         removeClippedSubviews={true}
@@ -85,40 +74,33 @@ export default function Home() {
         maxToRenderPerBatch={5}
         windowSize={5}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAFAFA",
+    backgroundColor: Colors.light.background,
   },
 
   listContent: {
-    paddingHorizontal: 14,
-    paddingTop: 8,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
     paddingBottom: 100,
   },
 
   cardWrapper: {
-    marginBottom: 18,
-    borderRadius: 24,
+    marginBottom: Spacing.xl,
+    borderRadius: Radius.xl,
     overflow: "hidden",
-    backgroundColor: "#FFF",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: Colors.light.surface,
+    ...Shadows.cardLarge,
   },
 
   emptyText: {
     textAlign: "center",
-    color: "#888",
+    color: Colors.light.textMuted,
     marginTop: 80,
     fontSize: 15,
   },

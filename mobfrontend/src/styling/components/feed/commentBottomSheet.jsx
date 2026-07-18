@@ -21,12 +21,13 @@ import {
   BottomSheetTextInput,
   BottomSheetFlatList,
 } from "@gorhom/bottom-sheet";
-
+import { Alert } from "react-native";
+import { useAuthStore } from "../../../store/authStore";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useCommentStore } from "../../store/commentStore";
+import { useCommentStore } from "../../../store/commentStore";
 
-import { formatTimeAgo } from "../../utils/formatTime";
+import { formatTimeAgo } from "../../../utils/formatTime";
 
 export default function CommentsBottomSheet({
   onClose,
@@ -82,29 +83,61 @@ export default function CommentsBottomSheet({
     }
   }, [post?._id]);
 
-  const renderItem = ({ item }) => (
+  const currentUserId = useAuthStore((state) => state.user?._id);
+
+const deleteComment = useCommentStore((state) => state.deleteComment);
+
+const handleDeleteComment = (commentId) => {
+  Alert.alert(
+    "Delete Comment",
+    "This can't be undone. Delete this comment?",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          const result = await deleteComment(post._id, commentId);
+          if (!result.success) {
+            Alert.alert("Error", "Couldn't delete the comment. Try again.");
+          }
+        },
+      },
+    ]
+  );
+};
+
+ const renderItem = ({ item }) => {
+  const isOwnComment = Boolean(item.userId?._id) && Boolean(currentUserId) && String(item.userId._id) === String(currentUserId);
+  console.log("is my comment", isOwnComment, item.userId?._id, currentUserId);
+  return (
     <View style={styles.commentRow}>
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>
-          {item.userId?.username?.[0]
-            ?.toUpperCase()}
+          {item.userId?.username?.[0]?.toUpperCase()}
         </Text>
       </View>
 
       <View style={styles.commentContent}>
         <Text style={styles.commentText}>
-          <Text style={styles.username}>
-            {item.userId?.username}{" "}
-          </Text>
+          <Text style={styles.username}>{item.userId?.username} </Text>
           {item.content}
         </Text>
-
-        <Text style={styles.time}>
-          {formatTimeAgo(item.createdAt)}
-        </Text>
+        <Text style={styles.time}>{formatTimeAgo(item.createdAt)}</Text>
       </View>
+
+      {isOwnComment && (
+        <TouchableOpacity
+          onPress={() => handleDeleteComment(item._id)}
+          hitSlop={10}
+          style={{ paddingHorizontal: 8, paddingTop: 2 }}
+        >
+          <Ionicons name="trash-outline" size={16} color="#666" />
+        </TouchableOpacity>
+      )}
     </View>
   );
+};
 
   return (
     <BottomSheetModal

@@ -1,18 +1,17 @@
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
-
 import { useState } from "react";
-
+import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 
 import { useAuthStore } from "../../store/authStore";
+
+import Screen from "../../styling/components/ui/Screen";
+import AppInput from "../../styling/components/ui/AppInput";
+import AppButton from "../../styling/components/ui/AppButton";
+
+import AuthLayout from "../../styling/components/auth/AuthLayout";
+import AuthContainer from "../../styling/components/auth/AuthContainer";
+import AuthHeader from "../../styling/components/auth/AuthHeader";
+import AuthFooter from "../../styling/components/auth/AuthFooter";
 
 export default function ForgotPassword() {
   const router = useRouter();
@@ -37,98 +36,39 @@ export default function ForgotPassword() {
 
     Alert.alert("OTP Sent", "Check your email for the reset OTP");
 
-    router.push("/(auth)/resetOtpVerify");
+    router.push("/resetOtpVerify");
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Campus Media</Text>
+    <Screen scroll keyboard>
+      <AuthLayout>
+        <AuthContainer>
+          <AuthHeader
+            title="Campus Media"
+            subtitle="Enter your college email to receive a reset OTP"
+          />
 
-      <Text style={styles.subtitle}>
-        Enter your email to receive a reset OTP
-      </Text>
+          <AppInput
+            placeholder="College Email"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
 
-      <TextInput
-        placeholder="College Email"
-        placeholderTextColor="#777"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        style={styles.input}
-      />
+          <AppButton
+            title="Send OTP"
+            loading={loading}
+            onPress={handleSendOtp}
+          />
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleSendOtp}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Send OTP</Text>
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => router.push("/login")}>
-        <Text style={styles.linkText}>Back to Login</Text>
-      </TouchableOpacity>
-    </View>
+          <AuthFooter
+            text="Remember your password?"
+            actionText="Login"
+            onPress={() => router.push("/login")}
+          />
+        </AuthContainer>
+      </AuthLayout>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#050505",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-
-  title: {
-    color: "#fff",
-    fontSize: 36,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-
-  subtitle: {
-    color: "#8e8e8e",
-    fontSize: 16,
-    marginBottom: 40,
-  },
-
-  input: {
-    backgroundColor: "#121212",
-    borderWidth: 1,
-    borderColor: "#222",
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    color: "#fff",
-    fontSize: 16,
-    marginBottom: 18,
-  },
-
-  button: {
-    backgroundColor: "#7c3aed",
-    borderRadius: 16,
-    paddingVertical: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 10,
-  },
-
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-
-  linkText: {
-    color: "#a78bfa",
-    textAlign: "center",
-    marginTop: 28,
-    fontSize: 15,
-  },
-});

@@ -40,3 +40,16 @@ export const addComment =
       );
     }
   };
+
+export const deleteComment = async (tweetId, commentId) => {
+  try {
+    const response = await API.delete(`/tweet/comment/${tweetId}/${commentId}`);
+    console.log("Delete comment response:", response.data);
+    return response.data;
+  } catch (error) {
+    throw (
+      error.response?.data ||
+      error
+    );
+  }
+};

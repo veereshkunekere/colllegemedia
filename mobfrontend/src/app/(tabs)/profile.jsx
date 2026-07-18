@@ -6,8 +6,9 @@ import {
   ActivityIndicator,
   FlatList,
   Dimensions,
+  Alert,
 } from "react-native";
-
+import { deleteTweet } from "../../services/postService";
 import { useState, useCallback, useRef } from "react";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -18,7 +19,6 @@ import {
   getPostsByUser,
   getUploadsByUser,
 } from "../../services/profileService";
-
 const { width } = Dimensions.get("window");
 const GRID_GAP = 2;
 const GRID_COLUMNS = 3;
@@ -48,6 +48,7 @@ export default function Profile() {
   // so switching tabs back and forth doesn't refire network requests.
   const fetchedTabs = useRef({ posts: false, uploads: false });
   const hasLoadedProfile = useRef(false);
+
 
   const loadTabData = useCallback(async (userId, which, { force = false } = {}) => {
     if (!userId) return;
@@ -111,6 +112,31 @@ export default function Profile() {
     if (profile?._id) loadTabData(profile._id, next);
   };
 
+  const handleDeletePost = (postId) => {
+  Alert.alert(
+    "Delete Post",
+    "This can't be undone. Delete this post?",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          const prevPosts = posts;
+          setPosts((curr) => curr.filter((p) => p._id !== postId)); // optimistic
+          try {
+            await deleteTweet(postId);
+          } catch (error) {
+            console.log("error deleting post", error);
+            setPosts(prevPosts); // roll back on failure
+            Alert.alert("Error", "Couldn't delete the post. Try again.");
+          }
+        },
+      },
+    ]
+  );
+};
+
   const initial = profile?.username?.charAt(0)?.toUpperCase() || "?";
 
   return (
@@ -145,7 +171,7 @@ export default function Profile() {
               <EmptyState tab={tab} />
             )
           }
-          renderItem={({ item }) => <PostRow item={item} />}
+          renderItem={({ item }) => <PostRow item={item} onDelete={() => handleDeletePost(item._id)}/>}
         />
       ) : (
         <FlatList
@@ -366,7 +392,7 @@ function TabButton({ icon, activeIcon, label, active, onPress }) {
 
 // Posts render as a feed row (tweet-style), not a photo grid —
 // these are text posts that may optionally carry images.
-function PostRow({ item }) {
+function PostRow({ item ,onDelete}) {
   const images = item.imageUrls || [];
 
   return (
@@ -375,11 +401,17 @@ function PostRow({ item }) {
         paddingHorizontal: 16,
         paddingVertical: 14,
         backgroundColor: "#fff",
+        flex: 1,
       }}
     >
-      <Text style={{ color: "#0a0a0a", fontSize: 14, lineHeight: 20 }}>
-        {item.content}
-      </Text>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <Text style={{ color: "#0a0a0a", fontSize: 14, lineHeight: 20, flex: 1 }}>
+          {item.content}
+        </Text>
+        <Pressable onPress={onDelete} hitSlop={10} style={{ marginLeft: 12, paddingTop: 2 }}>
+          <Ionicons name="trash-outline" size={18} color="#c4c4c4" />
+        </Pressable>
+      </View>
 
       {images.length > 0 && (
         <View

@@ -35,6 +35,24 @@ const deleteImage = async (publicId) => {
     }
 };
 
+const extractPublicId = (url) => {
+  try {
+    const afterUpload = url.split('/upload/')[1];
+    if (!afterUpload) return null;
+
+    // strip the version segment, e.g. "v1699999999/"
+    const withoutVersion = afterUpload.replace(/^v\d+\//, '');
+
+    // strip the file extension
+    const lastDot = withoutVersion.lastIndexOf('.');
+    return lastDot !== -1 ? withoutVersion.slice(0, lastDot) : withoutVersion;
+  } catch (error) {
+    console.error('Error extracting public ID from URL:', error);
+    return null;
+  }
+};
+
+
 const uploadPdf=async(filePath, publicId = null,category) => {
     try {   
         const options = {
@@ -59,7 +77,8 @@ const uploadPdf=async(filePath, publicId = null,category) => {
 module.exports = {
     uploadImage,
     deleteImage,
-    uploadPdf
+    uploadPdf,
+    extractPublicId
 };
 // This module provides functions to upload and delete images from Cloudinary.
 // It uses the Cloudinary SDK to handle image uploads and deletions.

@@ -37,6 +37,18 @@ export const getFeedPosts = async (cursor = null) => {
     }
   };
 
+  export const deleteTweet = async (tweetId) => {
+  try {
+    const response = await API.delete(`/tweet/${tweetId}`);
+    return response.data;
+  } catch (error) {
+    throw (
+      error.response?.data ||
+      error
+    );
+  }
+};
+
 export const createNewPost =
   async (formData) => {
     try {

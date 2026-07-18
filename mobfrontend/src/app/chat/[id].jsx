@@ -39,7 +39,7 @@ import {
 } from "../../store/authStore";
 
 import ChatBubble
-  from "../../components/chats/ChatBubble";
+  from "../../styling/components/chats/ChatBubble";
 
 import {
   getSocket,

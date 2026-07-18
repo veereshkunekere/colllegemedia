@@ -1,20 +1,16 @@
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
+import { View } from "react-native";
+import React, { useState } from "react";
+import { Alert } from "react-native";
+import { useRouter } from "expo-router";
 
-import {
-  useState,
-} from "react";
+import Screen from "../../styling/components/ui/Screen";
+import AppInput from "../../styling/components/ui/AppInput";
+import AppButton from "../../styling/components/ui/AppButton";
 
-import {
-  useRouter,
-} from "expo-router";
+import AuthLayout from "../../styling/components/auth/AuthLayout";
+import AuthContainer from "../../styling/components/auth/AuthContainer";
+import AuthHeader from "../../styling/components/auth/AuthHeader";
+import AuthFooter from "../../styling/components/auth/AuthFooter";
 
 import {
   useAuthStore,
@@ -81,168 +77,60 @@ export default function Login() {
     };
 
   return (
-    <View
-      style={styles.container}
+    <Screen
+        scroll
+        keyboard
     >
-      <Text
-        style={styles.title}
-      >
-        Campus Media
-      </Text>
+        <AuthLayout>
 
-      <Text
-        style={
-          styles.subtitle
-        }
-      >
-        Login to continue
-      </Text>
+            <AuthContainer>
 
-      <TextInput
-        placeholder="College Email"
-        placeholderTextColor="#777"
-        value={email}
-        onChangeText={
-          setEmail
-        }
-        autoCapitalize="none"
-        keyboardType="email-address"
-        style={styles.input}
-      />
+                <AuthHeader
+                    title="Campus Media"
+                    subtitle="Sign in to continue."
+                />
 
-      <TextInput
-        placeholder="Password"
-        placeholderTextColor="#777"
-        value={password}
-        onChangeText={
-          setPassword
-        }
-        secureTextEntry
-        style={styles.input}
-      />
+                <AppInput
+                    placeholder="College Email"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                />
 
-      <TouchableOpacity
-        style={
-          styles.button
-        }
-        onPress={
-          handleLogin
-        }
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator
-            color="#fff"
-          />
-        ) : (
-          <Text
-            style={
-              styles.buttonText
-            }
-          >
-            Login
-          </Text>
-        )}
-      </TouchableOpacity>
+                <AppInput
+                    placeholder="Password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                />
 
-      <TouchableOpacity
-        onPress={() =>
-          router.push(
-            "/signup"
-          )
-        }
-      >
-        <Text
-          style={
-            styles.linkText
-          }
-        >
-          Don’t have an
-          account? Register
-        </Text>
-         
-      </TouchableOpacity>
+                <AppButton
+                    title="Login"
+                    onPress={handleLogin}
+                    loading={loading}
+                    disabled={loading}
+                />
 
-      <TouchableOpacity
-        onPress={() =>
-          router.push(
-            "/forgotPassword"
-          )
-        }
-      >
-        <Text
-          style={
-            styles.linkText
-          }
-        >
-         Forgot your password? Reset
-        </Text>
-         
-      </TouchableOpacity>
-    </View>
-  );
+                <AuthFooter
+                    text="Don't have an account?"
+                    actionText="Register"
+                    onPress={() =>
+                        router.push("/signup")
+                    }
+                />
+
+                <AuthFooter
+                    text="Forgot your password?"
+                    actionText="Reset"
+                    onPress={() =>
+                        router.push("/forgotPassword")
+                    }
+                />
+
+            </AuthContainer>
+
+        </AuthLayout>
+    </Screen>
+);
 }
-
-const styles =
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor:
-        "#050505",
-      justifyContent:
-        "center",
-      paddingHorizontal: 24,
-    },
-
-    title: {
-      color: "#fff",
-      fontSize: 36,
-      fontWeight: "bold",
-      marginBottom: 10,
-    },
-
-    subtitle: {
-      color: "#8e8e8e",
-      fontSize: 16,
-      marginBottom: 40,
-    },
-
-    input: {
-      backgroundColor:
-        "#121212",
-      borderWidth: 1,
-      borderColor:
-        "#222",
-      borderRadius: 16,
-      paddingHorizontal: 18,
-      paddingVertical: 16,
-      color: "#fff",
-      fontSize: 16,
-      marginBottom: 18,
-    },
-
-    button: {
-      backgroundColor:
-        "#7c3aed",
-      borderRadius: 16,
-      paddingVertical: 18,
-      justifyContent:
-        "center",
-      alignItems:
-        "center",
-      marginTop: 10,
-    },
-
-    buttonText: {
-      color: "#fff",
-      fontSize: 16,
-      fontWeight: "700",
-    },
-
-    linkText: {
-      color: "#a78bfa",
-      textAlign: "center",
-      marginTop: 28,
-      fontSize: 15,
-    },
-  });

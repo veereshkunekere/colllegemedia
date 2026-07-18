@@ -14,7 +14,7 @@ import { useChatStore } from "../../store/chatStore";
 
 import { useAuthStore } from "../../store/authStore";
 
-import ConversationCard from "../../components/chats/ConversationCard";
+import ConversationCard from "../../styling/components/chats/ConversationCard";
 
 export default function Chats() {
   const { selectActiveConv } = useChatStore();

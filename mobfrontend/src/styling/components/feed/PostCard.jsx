@@ -8,10 +8,11 @@ import {
   Alert
 } from "react-native";
 // import ImageViewing from "react-native-image-viewing";
+import { Share } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {formatTimeAgo} from "../../utils/formatTime";
-import {usePostStore} from "../../store/postStore";
-import { useCommentSheet } from "../../contexts/CommentSheetProvider";
+import {formatTimeAgo} from "../../../utils/formatTime";
+import {usePostStore} from "../../../store/postStore";
+import { useCommentSheet } from "../../../contexts/CommentSheetProvider";
 export default function PostCard({ post }) {
   const isAnonymous = post.isAnonymous;
   const [visible,setVisible,] = useState(false);
@@ -20,6 +21,16 @@ export default function PostCard({ post }) {
     (state) =>
       state.toggleLike
   );
+
+  const handleShare = async (post) => {
+  try {
+    await Share.share({
+      message: `${post.isAnonymous ? "Anonymous" : post.username} on CollegeMedia: "${post.content}"`,
+    });
+  } catch (error) {
+    console.log("Error sharing post", error);
+  }
+};
 
   const handleReportPost = (post) => {
   Alert.alert(
@@ -204,11 +215,13 @@ export default function PostCard({ post }) {
 </TouchableOpacity>
 
      </View>
-        <Ionicons
-          name="share-social-outline"
-          size={22}
-          color="#fff"
-        />
+       <TouchableOpacity onPress={() => handleShare(post)} hitSlop={10}>
+  <Ionicons
+    name="share-social-outline"
+    size={22}
+    color="#5cd035"
+  />
+</TouchableOpacity>
       </View>
     </View>
     
