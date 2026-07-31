@@ -1,5 +1,7 @@
 const User=require("../models/user.models");
 const Tweet=require("../models/tweet.models");
+const  NotificationService = require("../services/notification.service");
+const NotificationTypes = require("../util/notificationTypes");
 const fs=require('fs');
 const tweetController={};
 const {uploadImage}=require("../util/cloudinary")
@@ -205,6 +207,13 @@ tweetController.likeATweet=async (req,res)=>{
         );
         if(!alreadyLiked){
            tweet.likes.push(user._id);
+           await NotificationService.createNotification({
+    recipient: tweet.userId,
+    actor: user._id,
+    type: NotificationTypes.LIKE,
+    entityType: "POST",
+    entityId: tweet._id,
+});
         }else(
             tweet.likes=tweet.likes.filter((usr)=>usr.toString()!==user._id.toString())
         )
@@ -281,6 +290,14 @@ tweetController.addComment =async (req, res) => {
 
       await tweet.save();
 
+       await NotificationService.createNotification({
+    recipient: tweet.userId,
+    actor: user._id,
+    type: NotificationTypes.COMMENT,
+    entityType: "POST",
+    entityId: tweet._id,
+});
+      
       res.status(200).json({
         success: true,
 

@@ -234,14 +234,7 @@ messagesControllers.sendMessage = async (req, res) => {
       await newMessage.save();
       console.log(newMessage);
 
-      // UPDATE
-      // CONVERSATION
-
-      conversation.lastMessage = "Encrypted message";
-
-      conversation.lastMessageSender = senderId;
-
-      conversation.lastMessageAt = new Date();
+    
 
       // UNREAD COUNT
 
