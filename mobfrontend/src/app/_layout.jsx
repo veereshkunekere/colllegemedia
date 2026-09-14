@@ -14,9 +14,11 @@ import {
 import {
   useAuthStore,
 } from "../store/authStore";
+import * as Notifications from "expo-notifications";
 
 import {useNotificationToastStore} from "../store/notifiactionToast"; 
 import NotificationToast from "../styling/components/notifications/NotificationToast";
+import {setupNotificationNavigation,handleNotificationNavigation} from "../services/notificationNavigation";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function RootLayout() {
@@ -44,7 +46,24 @@ export default function RootLayout() {
 
 
   useEffect(() => {
+
     checkAuth();
+
+    async function checkInitialNotification() {
+    const response =
+      await Notifications.getLastNotificationResponseAsync();
+
+    if (!response) return;
+
+    const data =
+      response.notification.request.content.data;
+
+    handleNotificationNavigation(data);
+  }
+
+  checkInitialNotification();
+    const cleanup = setupNotificationNavigation();
+    return cleanup;
   }, []);
 
   if (isCheckingAuth) {

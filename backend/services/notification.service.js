@@ -1,6 +1,7 @@
 const Notification = require("../models/notification.model");
 const { sendNotification} = require("../controllers/socket/notifications");
-
+const PushNotificationService = require("../service/pushNotificationService");
+const User = require("../models/user.models");
 class NotificationService {
   /**
    * Creates a notification and optionally emits it in realtime.
@@ -55,6 +56,49 @@ if (!entityId)
         sendNotification(recipient, notification);
       }
 
+       // Find recipient for FCM
+      const recipientUser =
+        await User.findById(recipient).select(
+          "fcmTokens username"
+        );
+
+      if (recipientUser?.fcmTokens?.length) {
+        const actorName =
+          notification.actor?.username ||
+          "Someone";
+
+        const {
+          title,
+          body,
+        } = NotificationService.buildPushContent({
+          type,
+          actorName,
+        });
+
+        await PushNotificationService.sendToUser({
+          user: recipientUser,
+
+          title,
+
+          body,
+
+          data: {
+            type,
+            notificationId:
+              notification._id.toString(),
+            entityType,
+            entityId:
+              entityId.toString(),
+
+    senderName:
+      notification.actor?.username || "Someone",
+
+    senderProfilePicture:
+      notification.actor?.profilePicture || "",
+          },
+        });
+      }
+
       return notification;
     } catch (error) {
       console.error(
@@ -66,7 +110,43 @@ if (!entityId)
     }
   }
 
-  
+  static buildPushContent({
+    type,
+    actorName,
+  }) {
+    switch (type) {
+      case "LIKE":
+        return {
+          title: actorName,
+          body: "liked your post",
+        };
+
+      case "COMMENT":
+        return {
+          title: actorName,
+          body: "commented on your post",
+        };
+
+      case "FOLLOW":
+        return {
+          title: actorName,
+          body: "started following you",
+        };
+
+      case "MESSAGE":
+        return {
+          title: actorName,
+          body: "sent you a message",
+        };
+
+      default:
+        return {
+          title: actorName,
+          body: "sent you a notification",
+        };
+    }
+  }
+
 }
 
 module.exports = NotificationService;

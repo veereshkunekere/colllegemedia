@@ -1,14 +1,15 @@
 {
   "expo": {
-    "name": "mobfrontend",
-    "slug": "mobfrontend",
+    "name": "colllegeMedia",
+    "slug": "colllegeMedia",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "mobfrontend",
+    "scheme": "colllegeMedia",
     "userInterfaceStyle": "automatic",
     "android": {
       "softwareKeyboardLayoutMode": "resize",
-      "package": "com.veereshkunakere.mobfrontend"
+      "package": "com.veereshkunakere.mobfrontend",
+      "googleServicesFile": "./google-services.json"
     },
     "plugins": [
       "expo-router",
@@ -18,7 +19,10 @@
       "expo-sqlite",
       "expo-image",
       "expo-splash-screen",
-      "expo-status-bar"
+      "expo-status-bar",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

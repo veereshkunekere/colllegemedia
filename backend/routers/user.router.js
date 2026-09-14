@@ -4,7 +4,12 @@ const auth = require('../middleware/auth.middleware.js');
 const multer = require('multer'); 
 const upload = multer({ dest: 'uploads/' }); 
 const fs=require('fs');
-
+const { testPush } = require("../service/test.js");
+Router.post(
+  "/test-push",
+  auth,
+  testPush
+);
 Router.get("/profile",auth,userController.getProfile);
 Router.put("/profile/edit",auth,upload.single('image') ,userController.EditProfile);
 Router.put(
@@ -16,6 +21,9 @@ Router.get("/public-key/:userId",auth,userController.getPublicKey);
 Router.get("/search",auth,userController.searchUsers);
 Router.get("/profile/:userId",auth,userController.getUserProfile);
 Router.get("/:userId",auth,userController.getUserById);
+Router.post("/fcm-token",auth,userController.updateFcmToken);
+
+
 // Router.put("/profile/edit", (req, res) => {
 //   res.send("Test route working");
 // });

@@ -206,5 +206,60 @@ userController.getUserById = async ( req, res) => {
   }
 };
 
+userController.updateFcmToken = async (req, res) => {
+  try {
+    console.log("Updating FCM token for user:", req.user);
+    const userId = req.user;
+    const { token, device = "android" } = req.body;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "FCM token is required",
+      });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const existingToken = user.fcmTokens.find(
+      (item) => item.token === token
+    );
+
+    if (existingToken) {
+      existingToken.updatedAt = new Date();
+      existingToken.device = device;
+    } else {
+      user.fcmTokens.push({
+        token,
+        device,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "FCM token updated successfully",
+    });
+  } catch (error) {
+    console.error("updateFcmToken error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update FCM token",
+    });
+  }
+};
+
+
 console.log(userController.updatePublicKey);
 module.exports=userController;

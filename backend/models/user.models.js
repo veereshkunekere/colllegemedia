@@ -19,6 +19,27 @@ const UserSchema = new mongoose.Schema({
         required: true
     },
     links: [String],
+    
+    fcmTokens: [
+  {
+    token: {
+      type: String,
+      required: true,
+    },
+    device: {
+      type: String,
+      default: "android",
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+],
 
     // ─── PASSWORD RESET (OTP → short-lived JWT reset token) ────────────────
     // resetPasswordOtp is cleared as soon as it's verified (one-time use).

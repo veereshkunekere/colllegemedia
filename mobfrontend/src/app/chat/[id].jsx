@@ -96,7 +96,7 @@ const isOtherUserOnline = isOnline(otherUser?._id);
 
     if (!id || !user?._id)
       return;
-
+    
     openConversation(
       id,
       user._id

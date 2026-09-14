@@ -2,7 +2,8 @@ import { View } from "react-native";
 import React, { useState } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
-
+import { getFCMToken } from "../../services/pushNotificationService";
+import API from "../../services/api";
 import Screen from "../../styling/components/ui/Screen";
 import AppInput from "../../styling/components/ui/AppInput";
 import AppButton from "../../styling/components/ui/AppButton";
@@ -70,6 +71,20 @@ export default function Login() {
 
         return;
       }
+
+      const token = await getFCMToken();
+
+      console.log("My FCM token:", token);
+
+      if(token){
+        await API.post(
+        "/user/fcm-token",
+        {
+          token: token,
+          device: "android",
+        }
+      );
+    }
 
       router.replace(
         "/home"

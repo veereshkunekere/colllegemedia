@@ -13,7 +13,7 @@ import { usePostStore } from "../../store/postStore";
 
 import PostCard from "../../styling/components/feed/PostCard";
 import FeedHeader from "../../styling/components/feed/FeedHeader";
-
+import API from "../../services/api";
 import { Colors, Spacing, Radius, Shadows } from "../../styling/theme";
 
 export default function Home() {
@@ -23,9 +23,23 @@ export default function Home() {
   const fetchPosts = usePostStore((state) => state.fetchPosts);
   const refreshPosts = usePostStore((state) => state.refreshPosts);
 
-  useEffect(() => {
-    fetchPosts(true);
-  }, []);
+  async function sendTestPush() {
+  try {
+    console.log("Sending test push notification...");
+    const response = await API.post("/user/test-push");
+    console.log("TEST PUSH:", response.data);
+  } catch (error) {
+    console.error(
+      "TEST PUSH ERROR:",
+      error.response?.data || error.message
+    );
+  }
+}
+
+useEffect(() => {
+  fetchPosts(true);
+  sendTestPush();
+}, []);
 
   return (
     <View style={styles.container}>
