@@ -7,6 +7,8 @@ const {onlineUsers}=require("../controllers/socketManager")
 const ConversationModel = require("../models/conversation.models");
 const {emitToConversation} = require("./socketManager");
 const messagesControllers = {};
+const NotificationService = require("../services/notification.service");
+const NotificationTypes = require("../util/notificationTypes");
 
 messagesControllers.getMessagedContacts = async (req, res) => {
   try {
@@ -83,61 +85,36 @@ messagesControllers.getMessages = async (req, res) => {
 
       const limit = 30;
 
-      const cursor = req.query.cursor;
-      const afterMessageNumber = Number( req.query.afterMessageNumber );
-      console.log(
- "SYNC AFTER",
- afterMessageNumber
-);
+      // AFTER
+const cursor = req.query.cursor;   // pagination: scrolling back to older messages
+const since = req.query.since;     // sync: catching up on missed messages
 
-      let query = {
-        conversationId,
-      };
+let query = { conversationId };
 
-      if(!isNaN(afterMessageNumber)){
-        query.messageNumber ={
-           $gt:
-             afterMessageNumber
-        }
-      }
+if (since) {
+  const sinceDate = new Date(since);
+  if (!isNaN(sinceDate.getTime())) {
+    query.createdAt = { $gt: sinceDate };
+  }
+}
 
-      // PAGINATION
+if (cursor) {
+  query.createdAt = {
+    ...(query.createdAt || {}),
+    $lt: new Date(cursor),
+  };
+}
 
-      if (cursor) {
-        query.createdAt = {
-          $lt: new Date(
-            cursor
-          ),
-        };
-      }
-
-      const messages =
-        await MessageModel.find(
-          query
-        )
-          .sort({
-            messageNumber:1,
-          });
-
-          console.log(
- "FOUND",
- messages.map(
-  m => m.messageNumber
- )
-);
+const messages = await MessageModel.find(query).sort({ createdAt: 1 });
           
 
       return res
         .status(200)
         .json({
           messages,
-
           nextCursor:
-            messages.length >
-            0
-              ? messages[
-                  0
-                ].createdAt
+            messages.length > 0
+              ? messages[messages.length - 1].createdAt
               : null,
         });
     } catch (error) {
@@ -246,6 +223,17 @@ messagesControllers.sendMessage = async (req, res) => {
 });
 
       emitToConversation( conversationId, "newMessage", newMessage );
+      await NotificationService.createNotification({
+        recipient: receiverId,
+        actor: senderId,
+        type: NotificationTypes.MESSAGE,
+        entityType: "MESSAGE",
+        entityId: conversationId,
+        metadata: {
+          messageId: newMessage._id,
+          messageNumber: newMessage.messageNumber
+        },
+      });
 
       // SOCKET EMIT
       // LATER

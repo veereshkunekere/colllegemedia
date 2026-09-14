@@ -13,7 +13,7 @@ const uploadRoute=require("./routers/upload.router");
 const adminRoute=require("./routers/admin.router");
 const messageRoute=require("./routers/messages.router");
 const conversationRoute=require("./routers/conversation.router");
-
+const notificationRoute=require("./routers/notification.router");
 const socketManager=require('./controllers/socketManager');
 const { meta } = require('./util/sendMail');
 const {authLimiter,apiLimiter} = require("./middleware/rateLimiter.middleware")
@@ -44,6 +44,7 @@ const mounts = [
     { path: "/api/upload", router: uploadRoute },
     { path: "/api/auth", router: authRoute },
     { path: "/api/messages" , router:conversationRoute},
+    { path: "/api/notifications", router: notificationRoute },
     { path: "/api/messages", router: messageRoute },  //This route is for non encrypted messages 
 ];
 

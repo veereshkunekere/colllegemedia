@@ -5,19 +5,15 @@ import API
   from "../services/api";
 
 import {
-  connectSocket,
   getSocket,
-} from "../services/socket";
+} from "../services/sockets/socketManager";
 
-import * as SecureStore
- from "expo-secure-store";
+
 import { getIdentityKeys,deriveSharedSecret,encryptMessage,decryptMessage,deriveRootKey,deriveInitialChainKeys,deriveMessageKey,advanceChainKey, } from "../services/cryptoService";
 import {getSharedSecret,saveSharedSecret,getRootKey,saveRootKey,loadSession,deleteRatchetState,deleteKeys,getReceiveState,getSendState,saveReceiveState,saveSendState} from "../services/sessionServive"
-import axios from "axios";
 import {saveSkippedKey,getSkippedKey,deleteSkippedKey} from "../db/skippedKeysRepository"
 import { saveMessage,getMessagesByConversation,markMessageSent,updateMessageStatus, getLastMessage } from "../db/messageRepository";
-import { removeToken } from "../utils/storage";
-import { clearDatabase } from "../db/database";
+
 
 // ============= MUTEX SYSTEM =============
 class MutexManager {
@@ -59,7 +55,7 @@ class MutexManager {
 const receiveMutex = new MutexManager();
 const sendMutex = new MutexManager();
 
-async function processIncomingMessage(message,myId,socket,set,get,skipUI=false){
+async function processIncomingMessage(message,myId,set,get,skipUI=false){
   console.log("recieved msgs for process",message);
   console.log("incoming",message.messageNumber);
   
@@ -167,7 +163,7 @@ try {
   set(state => ({ messages: [...state.messages, message] }));
   return message;
 }
-              socket.emit( "messageDelivered", { messageId: message._id, });
+              get().emitMessageDelivered(message._id);
 
 
               console.log("plaintxt",plaintext);
@@ -214,14 +210,12 @@ try {
 }
 
 if (
-  get().activeConversation._id ===
-  message.conversationId
-) {
+  get().activeConversation && (
+  String(get().activeConversation._id) ===
+  String(message.conversationId)
+)) {
   setTimeout(() => {
-    socket.emit("markSeen", {
-      conversationId:
-        message.conversationId
-    });
+    get().emitMarkSeen(message.conversationId);
   }, 300);
 }
 
@@ -241,7 +235,6 @@ export const useChatStore =
     socketConnected:
       false,
     
-    onlineUsers: [],
 
     currentUserId:null,
 
@@ -365,8 +358,7 @@ processReceiveQueue: async () => {
       const myId =
         currentState.currentUserId;
 
-      const socket =
-        getSocket();
+     
 
       await receiveMutex.withLock(
         message.conversationId,
@@ -380,7 +372,6 @@ processReceiveQueue: async () => {
           await processIncomingMessage(
             message,
             myId,
-            socket,
             set,
             get,
             false
@@ -658,57 +649,27 @@ processSendQueue: async () => {
         set({activeConversation:conversation});
     },
 
-    connectRealtime:({token , userId}) => {
+    clearActiveConversation: () => {
+    set({
+        activeConversation: null,
+        messages: [],
+        sharedSecret: null
+    });
+},
 
-        if ( get().socketConnected) {
-           return;
-       }
-         set({currentUserId:userId});
-
-        const socket = connectSocket({token});
-        socket.off("connect");
-        socket.off("disconnect");
-        socket.off("newMessage");
-        socket.off("connect_error");
-
-        socket.on("connect_error", (err) => {
-             console.log("socket auth failed",err.message);
-            }
-        );
-
-        socket.userId = userId;
-
-        socket.on( "connect",() => {
-          console.log("socket connected",socket.id);
-            set({
-              socketConnected:
-                true,
-            });
-          },
-          
-        );
-
-        socket.on("disconnect",() => {
-             set({ socketConnected: false,});
-          });
-
-
-
-        // NEW MESSAGE
-
-        socket.on("newMessage", async ( message ) => {
-          console.log("[SOCKET] RECEIVE NUMBER", message.messageNumber);
+    handleNewMessage: async (message)=>{
+        console.log("[SOCKET] RECEIVE NUMBER", message.messageNumber);
           console.log("[SOCKET] new msg received", message);
-          console.log("receiver state", await getReceiveState(message.conversationId,socket.userId));
+          console.log("receiver state", await getReceiveState(message.conversationId,get().currentUserId));
           console.log("[SOCKET] activeConversation", get().activeConversation);
           
           // Ignore my own message
-          if ( message.conversationId !== get().activeConversation._id ) {
+          if ( String(message.conversationId) !== String(get().activeConversation._id) ) {
             console.log("[SOCKET] message not for active conversation, ignoring");
             return;
           }
           
-          if ( message.senderId === socket.userId) {
+          if ( message.senderId === get().currentUserId ) {
             console.log("[SOCKET] message from self, ignoring");
             return;
           }
@@ -725,16 +686,12 @@ processSendQueue: async () => {
           }
           
           // Always enqueue, never process directly
-          get().enqueueReceiveMessage(message);           
-        });
+          get().enqueueReceiveMessage(message);
+    },
 
-        socket.on("messageDelivered", async ({ messageId }) => {
+    handleMessageDelivered: async ({ messageId }) => {
 
-               await updateMessageStatus(
-                messageId,
-                "delivered",
-                socket.userId
-              );
+      await updateMessageStatus(messageId,"delivered",get().currentUserId); //TODO:add userId to updateMessageStatus
 
                set((state) => ({
 
@@ -751,13 +708,12 @@ processSendQueue: async () => {
                     : msg
                  ),
               }));
-            }
-           );
+            },
 
-  socket.on("messagesSeen",async ({ conversationId }) => {
+    handleMessagesSeen: async ({ conversationId }) => {
 
     const currentUserId =
-      socket.userId;
+      get().currentUserId;
 
     const myMessages =
       get().messages.filter(
@@ -799,28 +755,56 @@ processSendQueue: async () => {
       "[SEEN] conversation seen",
       conversationId
     );
-  }
-);
+  },
 
-socket.on("userOnline", (userId) => {
-  set((state) => ({
-    onlineUsers: state.onlineUsers.includes(userId)
-      ? state.onlineUsers
-      : [...state.onlineUsers, userId],
-  }));
-});
+  emitMessageDelivered: (messageId) => {
+    const socket = getSocket();
 
-socket.on("userOffline", (userId) => {
-  set((state) => ({
-    onlineUsers: state.onlineUsers.filter((id) => id !== userId),
-  }));
-});
+    if (!socket?.connected) {
+        return;
+    }
 
-      },
+    socket.emit("messageDelivered", {
+        messageId,
+    });
+},
 
+emitMarkSeen: (conversationId) => {
+    const socket = getSocket();
 
+    if (!socket?.connected) {
+        return;
+    }
 
-    // LOAD INBOX
+    socket.emit("markSeen", {
+        conversationId,
+    });
+},
+
+joinConversation: (conversationId) => {
+    const socket = getSocket();
+
+    if (!socket?.connected) return;
+
+    socket.emit(
+        "joinConversation",
+        conversationId
+    );
+},
+
+leaveConversation: (conversationId) => {
+    const socket = getSocket();
+
+    if (!socket?.connected) return;
+
+    socket.emit(
+        "leaveConversation",
+        conversationId
+    );
+},
+  
+  
+  // LOAD INBOX
 
     loadConversations:  async () => {
         try {
@@ -851,20 +835,94 @@ socket.on("userOffline", (userId) => {
     // OPEN CHAT
 
     openConversation:  async ( conversationId ,myId ) => {
+
+      if (!conversationId) {
+        console.log(
+            "[CHAT] Invalid conversation"
+        );
+        return;
+    }
+
+    let conversation = get().conversations.find(c => c._id === conversationId);
+
+    if (!conversation) {
+        console.log(
+            "[CHAT] Conversation not found in store"
+        );
+        try {
+          console.log(
+            "[CHAT] Fetching conversation from server",
+            conversationId
+        );
+            const res = await API.get(`/messages/conversation/${conversationId}`);
+            conversation = res.data.conversation;
+
+             if (!conversation) {
+        console.error(
+          "[CHAT] Conversation not found on server"
+        );
+        return;
+      }
+        set((state) => {
+        const exists = state.conversations.some(
+          (c) =>
+            String(c._id) ===
+            String(conversation._id)
+        );
+
+        if (exists) {
+          return state;
+        }
+
+        return {
+          conversations: [
+            ...state.conversations,
+            conversation,
+          ],
+        };
+      });
+        } catch (error) {
+            console.error(
+                "[CHAT] Failed to fetch conversation from server",
+                error
+            );
+            console.log(
+              error.response?.data,
+              error.response?.status,
+              error.response?.headers
+            );
+            return;
+        }
+    }
+
+
+    set({
+        activeConversation: conversation,
+        messages: [],
+        sharedSecret: null,
+    });
+
  
         
-        console.log("selected conversationId",conversationId);
+        console.log("selected conversationId",conversation._id);
 
         const myKeys = await getIdentityKeys(myId);
-        const conversation =  get().activeConversation;
         console.log(conversation);
-        const receiverId = conversation.participants.find(p => String(p._id) !== String(myId));
-        const res = await API.get(`/user/public-key/${receiverId._id}`);
+        const receiver = conversation.participants.find(
+            p => String(p._id ?? p) !== String(myId)
+        );
 
-       let sharedSecret = await getSharedSecret(conversationId,myId);
+       const receiverId = receiver?._id ?? receiver;
+
+        if (!receiverId) {
+           throw new Error("Receiver ID not found in conversation");
+        }
+        const res = await API.get(`/user/public-key/${receiverId}`);
+
+       let sharedSecret = await getSharedSecret(conversation._id,myId);
        console.log("existing shared secret",sharedSecret);
-       console.log("my id",await getReceiveState(conversationId,myId));
-       console.log("my id",await getSendState(conversationId,myId));
+       console.log("my id",await getReceiveState(conversation._id,myId));
+       console.log("my id",await getSendState(conversation._id,myId));
 
 
   if(!sharedSecret){
@@ -885,13 +943,13 @@ socket.on("userOffline", (userId) => {
      );
 
     await saveSharedSecret(
-      conversationId,
+      conversation._id,
       sharedSecret,
       myId
     );
   }
 
-              let rootKey = await getRootKey( conversationId,myId );
+              let rootKey = await getRootKey( conversation._id,myId );
               console.log(
               "existing root key",
               rootKey
@@ -901,7 +959,7 @@ socket.on("userOffline", (userId) => {
 
               rootKey = await deriveRootKey( sharedSecret);
 
-              await saveRootKey( conversationId, rootKey,myId);
+              await saveRootKey( conversation._id, rootKey,myId);
               let chain = await deriveInitialChainKeys( rootKey );
               let sendChainKey = chain.sendChainKey;
               let receiveChainKey = chain.receiveChainKey;
@@ -913,8 +971,8 @@ socket.on("userOffline", (userId) => {
                   sendChainKey = receiveChainKey; 
                   receiveChainKey = temp;
               }
-               await saveSendState( conversationId, sendChainKey, 0, myId );
-               await saveReceiveState( conversationId, receiveChainKey, -1, myId );
+               await saveSendState( conversation._id, sendChainKey, 0, myId );
+               await saveReceiveState( conversation._id, receiveChainKey, -1, myId );
 
               }
 
@@ -953,17 +1011,12 @@ console.log(
 );
 
 set({messages: [] });
-        const socket = getSocket();
 
-        socket.emit(
-          "joinConversation",
-
-          conversationId
-        );
+        get().joinConversation(conversation._id);
 
         await get()
           .loadMessages(
-            conversationId,
+            conversation._id,
             myId
           );
       },
@@ -1000,21 +1053,11 @@ set({messages: [] });
         myId
       );
 
-    const lastMessageNumber =
-      lastMessage
-        ? lastMessage.messageNumber
-        : -1;
+    const since = lastMessage ? lastMessage.createdAt : undefined;
 
-    const res =
-      await API.get(
-        `/messages/${conversationId}`,
-        {
-          params: {
-            afterMessageNumber:
-              lastMessageNumber
-          }
-        }
-      );
+const res = await API.get(`/messages/${conversationId}`, {
+  params: since ? { since } : {}
+});
 
     console.log(
       "last local msg number",
@@ -1086,25 +1129,19 @@ set({messages: [] });
     isSyncing: false
   });
 
-  const socket = getSocket();
 
-  if (
-    socket &&
-    conversationId === get().activeConversation._id
-  ) {
+  const activeConversation =
+    get().activeConversation;
 
-    console.log(
-      "[SEEN] emitting markSeen",
-      conversationId
-    );
-
-    socket.emit(
-      "markSeen",
-      {
+if (
+    activeConversation &&
+    String(conversationId) ===
+    String(activeConversation._id)
+) {
+    get().emitMarkSeen(
         conversationId
-      }
     );
-  }
+}
 
   console.log(
     "[SYNC] completed"

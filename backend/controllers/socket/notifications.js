@@ -4,9 +4,7 @@
 // like/comment/follow/mention/new post happens — it doesn't need to know
 // anything about sockets, rooms, or who's online.
 //
-// If/when notifications get persisted to a collection, save the doc here
-// (in sendNotification) before emitting, so REST fetch on app-start and the
-// realtime push stay in sync.
+
 
 const { emitToUser } = require("./presence");
 const SocketEvents = require("../../util/socketEvents");
@@ -22,7 +20,7 @@ const sendNotification = (userId, notification) => {
   }
 
   const payload = {
-    ...notification,
+    ...notification.toObject(),
     createdAt: new Date(),
   };
 

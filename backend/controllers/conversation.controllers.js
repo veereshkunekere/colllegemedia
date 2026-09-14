@@ -172,4 +172,59 @@ conversationControllers.getConversations = async (req, res) => {
     }
   };
 
+conversationControllers.getConversationById = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+
+    console.log("Received request for conversationId:", conversationId, "from user:", req.user);
+    if (!conversationId) {
+      return res.status(400).json({
+        error: "Conversation ID is required",
+      });
+    }
+
+    const conversation = await ConversationModel.findById(
+      conversationId
+    ).populate(
+    "participants",
+    "username profilePicture"
+  );
+
+    if (!conversation) {
+      console.log("Conversation not found for ID:", conversationId);
+      return res.status(404).json({
+        error: "Conversation not found",
+      });
+    }
+
+    // Security: only participants can access the conversation
+
+    const isParticipant = conversation.participants.some(
+  participant =>
+    participant._id.toString() === req.user.toString()
+);
+
+    if (!isParticipant) {
+      return res.status(403).json({
+        error: "Not a participant of this conversation",
+      });
+      console.log("User", req.user, "is not a participant of conversation", conversationId);
+    }
+
+    return res.status(200).json({
+      conversation,
+    });
+
+  } catch (error) {
+    console.error(
+      "getConversationById error:",
+      error
+    );
+
+    return res.status(500).json({
+      error: "Internal server error",
+    });
+  }
+};
+
 module.exports = conversationControllers;

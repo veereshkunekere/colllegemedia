@@ -13,6 +13,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const openConversation = useChatStore((state) => state.openConversation);
+
   useEffect(() => {
     if (!profileId) return;
 
@@ -36,10 +38,9 @@ export default function ProfilePage() {
     try {
       const conversation = await createOrGetConversation(profileId);
 
-      useChatStore.setState((state) => ({
-        activeConversation: conversation,
-      }));
+      console.log('handleMessage conversation:', conversation);
 
+      
       router.push({
         pathname: `/chat/${conversation._id}`,
       });

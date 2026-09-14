@@ -6,8 +6,14 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-
+import { useRouter } from "expo-router";
+import NotificationBell from "../../components/notifications/NotificationBell";
+import { useNotificationStore } from "../../../store/notificationStore";
 export default function FeedHeader() {
+  const router = useRouter();
+  const unreadCount = useNotificationStore(
+    (state) => state.unreadCount
+  );
   return (
     <View style={styles.header}>
       <View>
@@ -15,6 +21,15 @@ export default function FeedHeader() {
           ColllegeMedia
         </Text>
       </View>
+
+      <NotificationBell
+        onPress={() =>
+          router.push("/notifications")
+        }
+      >
+        <Ionicons name="notifications-outline" size={26} color="#203234" />
+       
+      </NotificationBell>
 
      
     </View>

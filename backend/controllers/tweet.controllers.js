@@ -288,6 +288,11 @@ tweetController.addComment =async (req, res) => {
         newComment
       );
 
+      console.log(
+        `Adding comment to tweet ${tweetId} by user ${user._id}:`,
+        newComment
+      );
+
       await tweet.save();
 
        await NotificationService.createNotification({
@@ -297,6 +302,8 @@ tweetController.addComment =async (req, res) => {
     entityType: "POST",
     entityId: tweet._id,
 });
+
+
       
       res.status(200).json({
         success: true,
@@ -365,8 +372,8 @@ tweetController.getComments =async (req, res) => {
   };
 
 tweetController.reportTweet=async (req,res)=>{
-    const {id,userId}=req.body;
-    userId=req.user;
+    const {id}=req.body;
+    const userId=req.user;
      console.log("reported",id,"by",userId)
    
     try {

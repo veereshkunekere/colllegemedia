@@ -1,12 +1,6 @@
-const Router =
-  require("express")
-    .Router();
-
-const auth =
-  require("../middleware/auth.middleware");
-
-const conversationControllers =
-  require("../controllers/conversation.controllers");
+const Router = require("express").Router();
+const auth = require("../middleware/auth.middleware");
+const conversationControllers = require("../controllers/conversation.controllers");
 
 
 // CREATE OR FIND
@@ -27,6 +21,13 @@ Router.get(
   auth,
   conversationControllers
     .getConversations
+);
+
+Router.get(
+  "/conversation/:conversationId",
+  auth,
+  conversationControllers
+    .getConversationById
 );
 
 module.exports =

@@ -148,10 +148,10 @@ export const getLastMessage =
    `
     SELECT *
     FROM messages
-    WHERE conversationId = ?
-    ORDER BY messageNumber DESC
+    WHERE conversationId = ? AND senderId != ?
+    ORDER BY createdAt DESC
     LIMIT 1
    `,
-   [conversationId]
+   [conversationId, userId]
   );
 };

@@ -15,12 +15,8 @@ import {
   useAuthStore,
 } from "../store/authStore";
 
-import {
-  BottomSheetModalProvider,
-} from "@gorhom/bottom-sheet";
-
-import {initDB} from "../db/database";
-import {GestureHandlerRootView} from "react-native-gesture-handler";
+import {useNotificationToastStore} from "../store/notifiactionToast"; 
+import NotificationToast from "../styling/components/notifications/NotificationToast";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function RootLayout() {
@@ -36,17 +32,20 @@ export default function RootLayout() {
         state.isCheckingAuth
     );
 
-  const { user} = useAuthStore();
+    const toastNotification =
+        useNotificationToastStore(
+            (state) => state.notification
+        );
+
+    const hideToast =
+        useNotificationToastStore(
+            (state) => state.hideToast
+        );
+
 
   useEffect(() => {
     checkAuth();
   }, []);
-
-  useEffect(() => {
-  if (user?._id) {
-    initDB(user._id);
-  }
-}, [user]);
 
   if (isCheckingAuth) {
     return (
@@ -75,6 +74,12 @@ export default function RootLayout() {
          <Stack.Screen name="(tabs)"/>
          <Stack.Screen name="(auth)"/>
         </Stack>
+        <NotificationToast
+                    notification={
+                        toastNotification
+                    }
+                    onHide={hideToast}
+          />
         </SafeAreaProvider>
   );
 }

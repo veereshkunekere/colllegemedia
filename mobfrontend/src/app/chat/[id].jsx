@@ -33,7 +33,7 @@ import { Ionicons } from "@expo/vector-icons";
 import {
   useChatStore,
 } from "../../store/chatStore";
-
+import { usePresenceStore } from "../../store/presenceStore";
 import {
   useAuthStore,
 } from "../../store/authStore";
@@ -43,7 +43,8 @@ import ChatBubble
 
 import {
   getSocket,
-} from "../../services/socket";
+  disconnectSocket
+} from "../../services/sockets/socketManager";
 
 
 export default function ChatRoom() {
@@ -71,12 +72,13 @@ export default function ChatRoom() {
     messages,
 
     openConversation,
-
+    clearActiveConversation,
     sendMessage,
     activeConversation, 
     currentUserId,
-    onlineUsers,
   } = useChatStore();
+
+  const { onlineUsers,isOnline } = usePresenceStore();
  
 
 const otherUser =
@@ -86,10 +88,8 @@ const otherUser =
 
 // TODO: wire up real presence once online/offline tracking is implemented
 // (see useChatStore's onlineUsers + the "Online/offline flow" plan).
-const isOtherUserOnline =
-  otherUser?._id
-    ? onlineUsers?.includes?.(String(otherUser._id))
-    : false;
+const isOtherUserOnline = isOnline(otherUser?._id);
+    
 
 
   useEffect(() => {
@@ -118,6 +118,7 @@ const isOtherUserOnline =
         "leaveConversation",
         id
       );
+      clearActiveConversation();
     };
 
   }, [id]);

@@ -34,6 +34,9 @@ if (!entityId)
         return null;
       }
 
+      console.log(`[NotificationService] Creating notification for recipient ${recipient} from actor ${actor} of type ${type} on entity ${entityType} with ID ${entityId}`
+      );
+
       const notification = await Notification.create({
         recipient,
         actor,
@@ -43,12 +46,10 @@ if (!entityId)
         metadata,
       });
 
-      await notification.populate([
-        {
-          path: "actor",
-          select: "username profilePicture",
-        },
-      ]);
+      await notification.populate(
+          "actor",
+          "username profilePicture",
+      );
 
       if (emit) {
         sendNotification(recipient, notification);

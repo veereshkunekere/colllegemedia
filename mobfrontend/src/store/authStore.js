@@ -23,7 +23,11 @@ import {
   getIdentityKeys,
 } from "../services/cryptoService";
 
-import { useChatStore } from "../store/chatStore";
+import {
+    startSocketServices
+} from "../services/sockets/socketBootstart";
+
+import {disconnectSocket} from "../services/sockets/socketManager";
 
 import {deleteKeys,deleteRatchetState} from "../services/sessionServive";
 import {clearDatabase,initDB} from "../db/database";
@@ -38,6 +42,7 @@ export const useAuthStore = create((set, get) => ({
   // reset-password screens. Never persisted to storage — memory only.
   resetToken: null,
   resetEmail: null,
+  stopSocketService:null,
 
   // ─── SIGNUP ────────────────────────────────────────────────────────────────
   // Sends user details to /auth/verify-email with publicKey: null.
@@ -112,9 +117,7 @@ export const useAuthStore = create((set, get) => ({
 
       set({ user: data.user, token: data.token });
 
-      useChatStore
-        .getState()
-        .connectRealtime({ token: data.token, userId: data.user._id });
+      get().stopSocketService = startSocketServices({ token: data.token, userId: data.user._id });
 
       return { success: true };
     } catch (error) {
@@ -156,10 +159,8 @@ export const useAuthStore = create((set, get) => ({
       } else {
         console.log("Keys are in sync");
       }
-
-      useChatStore
-        .getState()
-        .connectRealtime({ token: data.token, userId: data.user._id });
+      
+      get().stopSocketService=startSocketServices({ token: data.token, userId: data.user._id });
 
       return { success: true };
     } catch (error) {
@@ -288,9 +289,12 @@ export const useAuthStore = create((set, get) => ({
         console.log("Keys are in sync");
       }
 
-      useChatStore
-        .getState()
-        .connectRealtime({ token: storedToken, userId: data.user._id });
+get().stopSocketService =
+    startSocketServices({
+        token: storedToken,
+        userId: data.user._id
+    });
+
     } catch (error) {
       console.log("checkAuth error:", error);
       await removeToken();
@@ -303,11 +307,26 @@ export const useAuthStore = create((set, get) => ({
   // ─── LOGOUT ────────────────────────────────────────────────────────────────
   logout: async () => {
     try {
-      await logoutUser();
+        await logoutUser();
     } catch (error) {
-      console.log("Logout error:", error);
+        console.log("Logout error:", error);
     }
+
+    const stop =
+        get().stopSocketService;
+
+    if (stop) {
+        stop();
+    }
+
+    disconnectSocket();
+
     await removeToken();
-    set({ user: null, token: null });
-  },
+
+    set({
+        stopSocketService: null,
+        user: null,
+        token: null,
+    });
+},
 }));
