@@ -67,30 +67,70 @@ tweetController.makeAtweet = async (req, res) => {
     }
 };
 
-tweetController.getATweet = async(req,res) =>{
-  const {tweetId}=req.params;
-  
-    if (!mongoose.Types.ObjectId.isValid(tweetId) ) {
-      return res.status(400).json({ message: "Invalid id" });
-    }
+//single tweet for opening a particular tweet
+tweetController.getATweet = async (req, res) => {
+  const { tweetId } = req.params;
 
-  try{
-
-    const tweet = await Tweet.findById(tweetId);
-    if(!tweet){
-      return res.status(404).json({
-      tweet
+  if (!mongoose.Types.ObjectId.isValid(tweetId)) {
+    return res.status(400).json({
+      message: "Invalid id",
     });
-    }
-    return res.status(200).json({
-      tweet
-    });
-
-  }catch(e){
-    console.log("error in finding a tweet",tweet);
   }
-}
 
+  try {
+    const post = await Tweet.findById(tweetId)
+      .populate("userId", "username profilePicture");
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    const formattedPost = {
+      _id: post._id,
+      content: post.content,
+      createdAt: post.createdAt,
+
+      isAnonymous: post.isAnonymous,
+
+      username: post.isAnonymous
+        ? "Anonymous"
+        : post.userId?.username,
+
+      profilePicture:
+        post.userId?.profilePicture || null,
+
+      likesCount:
+        post.likes?.length || 0,
+
+      // IMPORTANT:
+      // This should be calculated using the logged-in user.
+      likedByUser: post.likes?.some(
+        (id) => id.toString() === req.user?.toString()
+      ) || false,
+
+      commentsCount:
+        post.comments?.length || 0,
+
+      imageUrls:
+        post.imageUrls || [],
+    };
+
+    return res.status(200).json({
+      tweet: formattedPost,
+    });
+
+  } catch (error) {
+    console.error("Error finding tweet:", error);
+
+    return res.status(500).json({
+      message: "Error fetching tweet",
+    });
+  }
+};
+
+//multiple tweets for homepage
 tweetController.getTweets=async (req,res)=>{
     try {
       const limit = 10;
