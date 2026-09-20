@@ -2,6 +2,7 @@ const Notification = require("../models/notification.model");
 const { sendNotification} = require("../controllers/socket/notifications");
 const PushNotificationService = require("../service/pushNotificationService");
 const User = require("../models/user.models");
+const { buildNotificationData } = require("../util/notificationPayload");
 class NotificationService {
   /**
    * Creates a notification and optionally emits it in realtime.
@@ -82,20 +83,14 @@ if (!entityId)
 
           body,
 
-          data: {
+          data: buildNotificationData({
             type,
-            notificationId:
-              notification._id.toString(),
+            notificationId: notification._id,
             entityType,
-            entityId:
-              entityId.toString(),
-
-    senderName:
-      notification.actor?.username || "Someone",
-
-    senderProfilePicture:
-      notification.actor?.profilePicture || "",
-          },
+            entityId,
+            actor: notification.actor,
+            metadata,
+          }),
         });
       }
 

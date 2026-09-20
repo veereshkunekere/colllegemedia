@@ -263,8 +263,8 @@ function ProfileHeader({
           }}
         >
           <Stat label="Posts" value={String(postsCount)} />
-          <Stat label="Followers" value="456" />
-          <Stat label="Following" value="789" />
+          {<Stat label="Followers" value={String(profile?.followers || 0)} />}
+          {<Stat label="Following" value={String(profile?.following || 0)} />}
         </View>
       </View>
 

@@ -67,6 +67,29 @@ tweetController.makeAtweet = async (req, res) => {
     }
 };
 
+tweetController.getATweet = async(req,res) =>{
+  const {tweetId}=req.params;
+  
+    if (!mongoose.Types.ObjectId.isValid(tweetId) ) {
+      return res.status(400).json({ message: "Invalid id" });
+    }
+
+  try{
+
+    const tweet = await Tweet.findById(tweetId);
+    if(!tweet){
+      return res.status(404).json({
+      tweet
+    });
+    }
+    return res.status(200).json({
+      tweet
+    });
+
+  }catch(e){
+    console.log("error in finding a tweet",tweet);
+  }
+}
 
 tweetController.getTweets=async (req,res)=>{
     try {
@@ -250,6 +273,12 @@ tweetController.addComment =async (req, res) => {
           });
       }
 
+      if (content.length > 200) {
+        return res.status(400).json({
+          message: "Comment must be 200 characters or fewer",
+        });
+      }
+
       const user =
         await User.findById(
           req.user
@@ -278,9 +307,19 @@ tweetController.addComment =async (req, res) => {
           });
       }
 
+      const usernames = [
+        ...new Set(
+          [...content.matchAll(/@(\w+)/g)].map((match) => match[1])
+        ),
+      ];
+      const mentionedUsers = usernames.length
+        ? await User.find({ username: { $in: usernames } }).select("_id username")
+        : [];
+
       const newComment = {
         userId: user._id,
         content,
+        mentions: mentionedUsers.map((mentionedUser) => mentionedUser._id),
         createdAt: new Date(),
       };
 
@@ -301,7 +340,21 @@ tweetController.addComment =async (req, res) => {
     type: NotificationTypes.COMMENT,
     entityType: "POST",
     entityId: tweet._id,
+    metadata: { commentId: tweet.comments[0]._id },
 });
+
+      for (const mentionedUser of mentionedUsers) {
+        if (String(mentionedUser._id) === String(tweet.userId)) continue;
+
+        await NotificationService.createNotification({
+          recipient: mentionedUser._id,
+          actor: user._id,
+          type: NotificationTypes.MENTION,
+          entityType: "POST",
+          entityId: tweet._id,
+          metadata: { commentId: tweet.comments[0]._id },
+        });
+      }
 
 
       
@@ -334,6 +387,10 @@ tweetController.getComments =async (req, res) => {
         ).populate(
           "comments.userId",
           "username profilePicture"
+          )
+          .populate(
+            "comments.mentions",
+            "username"
           );
 
       if (!tweet) {

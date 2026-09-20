@@ -8,126 +8,307 @@ export const useNotificationStore = create((set) => ({
     error: null,
 
     fetchNotifications: async () => {
-        try {
-            set({
-                loading: true,
-                error: null,
-            });
+    try {
+        set({
+            loading: true,
+            error: null,
+        });
 
-            const response = await API.get(`/notifications`);
+        const response = await API.get(`/notifications`);
 
-            const data = await response.data;
-            console.log(
-                "[Notification] Fetched notifications:",
-                response.status,
-                response.success,
-                data.success
-            );
+        const data = response.data;
 
-            if (response.status !== 200 || !data.success) {
-                throw new Error(
-                    data.message ||
-                        "Failed to fetch notifications"
-                );
-            }
-
-            const notifications =
-                data.notifications || [];
-
-            set({
-                notifications,
-                unreadCount:
-                    notifications.filter(
-                        (notification) =>
-                            !notification.isRead
-                    ).length,
-                loading: false,
-            });
-        } catch (error) {
-            console.error(
-                "[Notification] Fetch error:",
-                error
-            );
-
-            set({
-                loading: false,
-                error: error.message,
-            });
-        }
-    },
-
-    addNotification: (notification) => {
         console.log(
-            "[Notification] Adding notification:",
-            notification.entityId,"activeConversation:",useChatStore.getState().activeConversation?._id
+            "[Notification] Fetched notifications:",
+            response.status,
+            data.success
         );
 
-        if(!notification || !notification._id) {
-            console.error(
-                "[Notification] Invalid notification object:",
-                notification
+        if (response.status !== 200 || !data.success) {
+            throw new Error(
+                data.message ||
+                    "Failed to fetch notifications"
             );
-            return;
         }
 
-       const activeConversationId =
+        const rawNotifications =
+            data.notifications || [];
+
+        // Group MESSAGE notifications by conversation
+        const conversationMap = new Map();
+        const otherNotifications = [];
+
+        for (const notification of rawNotifications) {
+
+            if (
+                notification.type === "MESSAGE" &&
+                notification.entityId
+            ) {
+                const conversationId =
+                    String(notification.entityId);
+
+                const existing =
+                    conversationMap.get(conversationId);
+
+                if (existing) {
+
+                    // Add this message to the
+                    // existing conversation notification
+                    existing.unreadMessages =
+                        (existing.unreadMessages || 1) + 1;
+
+                    // Keep the latest notification
+                    if (
+                        new Date(notification.createdAt) >
+                        new Date(existing.createdAt)
+                    ) {
+                        existing.createdAt =
+                            notification.createdAt;
+
+                        existing.updatedAt =
+                            notification.updatedAt;
+
+                        existing.metadata =
+                            notification.metadata;
+
+                        existing._id =
+                            notification._id;
+                    }
+
+                    // If ANY notification for this
+                    // conversation is unread,
+                    // conversation remains unread.
+                    existing.isRead =
+                        existing.isRead &&
+                        notification.isRead;
+
+                } else {
+
+                    conversationMap.set(
+                        conversationId,
+                        {
+                            ...notification,
+                            unreadMessages:
+                                notification.isRead
+                                    ? 0
+                                    : 1,
+                        }
+                    );
+                }
+
+            } else {
+
+                // Likes, comments, follows, etc.
+                otherNotifications.push(
+                    notification
+                );
+            }
+        }
+
+        const notifications = [
+            ...conversationMap.values(),
+            ...otherNotifications,
+        ];
+
+        // Sort newest first
+        notifications.sort(
+            (a, b) =>
+                new Date(b.createdAt) -
+                new Date(a.createdAt)
+        );
+
+        const unreadCount =
+            notifications.filter(
+                (notification) =>
+                    !notification.isRead
+            ).length;
+
+        set({
+            notifications,
+            unreadCount,
+            loading: false,
+        });
+
+    } catch (error) {
+        console.error(
+            "[Notification] Fetch error:",
+            error
+        );
+
+        set({
+            loading: false,
+            error: error.message,
+        });
+    }
+},
+
+addNotification: (notification) => {
+    if (!notification || !notification._id) {
+        console.error(
+            "[Notification] Invalid notification:",
+            notification
+        );
+        return;
+    }
+
+    const activeConversationId =
         useChatStore.getState().activeConversation?._id;
 
-       const isActiveConversation =
+    const isActiveConversation =
         String(activeConversationId) ===
         String(notification.entityId);
- 
-        if(isActiveConversation && notification.type === "MESSAGE") {
-            console.log(
-                "[Notification] Notification is for active conversation, marking as read immediately."
-            );
-            notification.isRead = true;
+
+    const notificationToAdd = {
+        ...notification,
+
+        isRead:
+            isActiveConversation &&
+            notification.type === "MESSAGE"
+                ? true
+                : notification.isRead,
+    };
+
+    set((state) => {
+
+        // --------------------------------
+        // MESSAGE NOTIFICATION
+        // --------------------------------
+        if (notification.type === "MESSAGE") {
+
+            const existingIndex =
+                state.notifications.findIndex(
+                    (item) =>
+                        item.type === "MESSAGE" &&
+                        String(item.entityId) ===
+                            String(notification.entityId)
+                );
+
+            // Same conversation already has a notification
+            if (existingIndex !== -1) {
+
+                const updatedNotifications =
+                    [...state.notifications];
+
+                const existing =
+                    updatedNotifications[existingIndex];
+
+                updatedNotifications[existingIndex] = {
+                    ...existing,
+
+                    // Keep latest notification data
+                    ...notification,
+
+                    // Keep conversation notification unread
+                    isRead:
+                        existing.isRead &&
+                        notificationToAdd.isRead
+                            ? true
+                            : false,
+
+                    // Number of unread messages
+                    unreadMessages:
+                        (existing.unreadMessages || 1) + 1,
+                };
+
+                return {
+                    notifications:
+                        updatedNotifications,
+
+                    // IMPORTANT:
+                    // don't increase unreadCount
+                    // because conversation already exists
+                    unreadCount:
+                        state.unreadCount,
+                };
+            }
+
+            // First notification for this conversation
+            return {
+                notifications: [
+                    {
+                        ...notificationToAdd,
+                        unreadMessages: 1,
+                    },
+                    ...state.notifications,
+                ],
+
+                unreadCount:
+                    state.unreadCount +
+                    (notificationToAdd.isRead ? 0 : 1),
+            };
         }
-        
-        set((state) => ({
+
+        // --------------------------------
+        // OTHER NOTIFICATIONS
+        // --------------------------------
+
+        const exists =
+            state.notifications.some(
+                (item) =>
+                    String(item._id) ===
+                    String(notification._id)
+            );
+
+        if (exists) {
+            console.log(
+                "[Notification] Duplicate ignored:",
+                notification._id
+            );
+
+            return state;
+        }
+
+        return {
             notifications: [
-                notification,
+                notificationToAdd,
                 ...state.notifications,
             ],
 
             unreadCount:
                 state.unreadCount +
-                (notification.isRead ? 0 : 1),
-        }));
-    },
+                (notificationToAdd.isRead ? 0 : 1),
+        };
+    });
+},
 
-    markAsRead: async (notificationId) => {
+    markAsRead: async (conversationId) => {
     try {
-        await API.patch(`/notifications/${notificationId}/read`);
+        await API.patch(
+            `/notifications/conversation/${conversationId}/read`
+        );
 
-        set((state) => {
-            const notification = state.notifications.find(
-                (n) => n._id === notificationId
-            );
-
-            if (!notification || notification.isRead) {
-                return state;
-            }
-
-            return {
-                notifications: state.notifications.map((n) =>
-                    n._id === notificationId
-                        ? { ...n, isRead: true }
-                        : n
+        set((state) => ({
+            notifications:
+                state.notifications.map((notification) =>
+                    notification.type === "MESSAGE" &&
+                    String(notification.entityId) ===
+                        String(conversationId)
+                        ? {
+                              ...notification,
+                              isRead: true,
+                              unreadMessages: 0,
+                          }
+                        : notification
                 ),
-                unreadCount: Math.max(
-                    0,
-                    state.unreadCount - 1
-                ),
-            };
-        });
+
+            unreadCount:
+                state.notifications.filter(
+                    (notification) =>
+                        !notification.isRead &&
+                        !(
+                            notification.type === "MESSAGE" &&
+                            String(notification.entityId) ===
+                                String(conversationId)
+                        )
+                ).length,
+        }));
     } catch (error) {
         console.error(
-            "[Notification] Mark as read error:",
+            "[Notification] Conversation read error:",
             error.response?.data || error.message
         );
     }
-    },
+},
 
     markAllAsRead: async () => {
     try {

@@ -24,7 +24,7 @@ export default function FeedHeader() {
 
       <NotificationBell
         onPress={() =>
-          router.push("/notifications")
+          router.push("otherscreens/notifications")
         }
       >
         <Ionicons name="notifications-outline" size={26} color="#203234" />

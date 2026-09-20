@@ -11,7 +11,6 @@ notificationController.getNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find({
             recipient: req.user,
-            isRead: false,
         })
             .populate(
                 "actor",

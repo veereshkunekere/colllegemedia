@@ -166,7 +166,7 @@ authController.Login = async (req, res) => {
    try {
      const { email, password } = req.body;
     console.log("Login attempt for email:", email);
-    if (!email || !password) {
+    if (!email || !password || !email.includes("@mvsrec.edu.in")) {
         return res.status(400).json({ message: "Email and password are required" });
     }
 

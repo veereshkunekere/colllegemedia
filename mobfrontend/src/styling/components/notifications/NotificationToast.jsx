@@ -2,7 +2,7 @@ import React, {
     useEffect,
     useRef,
 } from "react";
-
+import {useRouter} from "expo-router"
 import {
     View,
     Text,
@@ -18,6 +18,10 @@ const NotificationToast = ({
     onHide,
     duration = 3500,
 }) => {
+     
+    const router = useRouter();
+
+
     const translateY =
         useRef(
             new Animated.Value(-120)
@@ -68,6 +72,11 @@ const NotificationToast = ({
         };
     }, [notification]);
 
+    
+    if (!notification) {
+        return null;
+    }
+
     const hideToast = () => {
         Animated.parallel([
             Animated.timing(
@@ -92,9 +101,7 @@ const NotificationToast = ({
         });
     };
 
-    if (!notification) {
-        return null;
-    }
+    
 
     const actorName =
         notification.actor?.username ||
@@ -141,6 +148,29 @@ const NotificationToast = ({
         }
     };
 
+    const handleNotificationClick = () => {
+
+
+  console.log("opening notification",notification)
+
+ switch (notification.entityType) {
+  case "MESSAGE":
+    router.push(`/chat/${notification.entityId}`);
+    break;
+
+  case "POST":
+    router.push(`/post/${notification.entityId}`);
+    break;
+
+  default:
+    console.log(
+      "Unknown notification entity:",
+      notification.entityType
+    );
+}
+  hideToast();
+};
+
     return (
         <Animated.View
             style={[
@@ -156,10 +186,8 @@ const NotificationToast = ({
             ]}
         >
             <Pressable
-                onPress={() => {
-                    onPress?.(notification);
-                    hideToast();
-                }}
+                onPress={handleNotificationClick}
+                  
                 style={styles.container}
             >
                 {/* Avatar */}

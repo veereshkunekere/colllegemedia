@@ -6,10 +6,11 @@ import {
     StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
-
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import NotificationList from "../../styling/components/notifications/NotificationList";
 import { useNotificationStore } from "../../store/notificationStore";
+import { handleNotificationNavigation } from "../../services/notificationNavigation";
 
 const NotificationScreen = ({ navigation }) => {
     const router = useRouter();
@@ -39,19 +40,8 @@ const NotificationScreen = ({ navigation }) => {
             notification
         );
 
-        if (!notification.isRead) {
-            await markAsRead(notification._id);
-        }
-        if (notification.type === "MESSAGE") {
-        if (!notification.entityId) {
-            console.warn("MESSAGE notification has no conversationId");
-            return;
-        }
-
-        router.push(`/chat/${notification.entityId}`);
-        return;
-    }
-        // We will add navigation based on notification type later.
+        if (!notification.isRead) await markAsRead(notification._id);
+        handleNotificationNavigation(notification);
     };
 
     useEffect(() => {
@@ -59,7 +49,7 @@ const NotificationScreen = ({ navigation }) => {
     }, []);
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
 
             {/* Header */}
             <View style={styles.header}>
@@ -88,13 +78,15 @@ const NotificationScreen = ({ navigation }) => {
             </View>
 
             {/* Notifications */}
-            <NotificationList
+            <View style={{flex:1}}>
+                <NotificationList
                 notifications={notifications}
                 onNotificationPress={
                     handleNotificationPress
                 }
             />
-        </View>
+            </View>
+        </SafeAreaView>
     );
 };
 

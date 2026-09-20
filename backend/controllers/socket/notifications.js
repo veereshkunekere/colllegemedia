@@ -8,6 +8,7 @@
 
 const { emitToUser } = require("./presence");
 const SocketEvents = require("../../util/socketEvents");
+const { buildNotificationData } = require("../../util/notificationPayload");
 
 /**
  * @param {string} userId - recipient
@@ -21,6 +22,14 @@ const sendNotification = (userId, notification) => {
 
   const payload = {
     ...notification.toObject(),
+    data: buildNotificationData({
+      type: notification.type,
+      notificationId: notification._id,
+      entityType: notification.entityType,
+      entityId: notification.entityId,
+      actor: notification.actor,
+      metadata: notification.metadata,
+    }),
     createdAt: new Date(),
   };
 

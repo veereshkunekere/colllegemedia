@@ -222,7 +222,6 @@ messagesControllers.sendMessage = async (req, res) => {
   $inc: { [`unreadCounts.${receiverId.toString()}`]: 1 },
 });
 
-      emitToConversation( conversationId, "newMessage", newMessage );
       await NotificationService.createNotification({
         recipient: receiverId,
         actor: senderId,
@@ -234,6 +233,8 @@ messagesControllers.sendMessage = async (req, res) => {
           messageNumber: newMessage.messageNumber
         },
       });
+
+      emitToConversation( conversationId, "newMessage", newMessage );
 
       // SOCKET EMIT
       // LATER

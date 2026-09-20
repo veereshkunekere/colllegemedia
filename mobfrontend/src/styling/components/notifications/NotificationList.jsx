@@ -28,6 +28,7 @@ const NotificationList = ({
 
     return (
         <FlatList
+        style={{flex:1}}
             data={notifications}
             keyExtractor={(item) => item._id}
             renderItem={({ item }) => (

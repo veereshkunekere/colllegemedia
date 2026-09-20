@@ -20,9 +20,6 @@ const NotificationItem = ({
             case "COMMENT":
                 return "commented on your post";
 
-            case "REPLY":
-                return "replied to your comment";
-
             case "FOLLOW":
                 return "started following you";
 
@@ -44,10 +41,10 @@ const NotificationItem = ({
     };
 
     const actorName =
-        notification.actor?.username || "Someone";
+        notification?.actor?.username || "Someone";
 
     const profilePicture =
-        notification.actor?.profilePicture;
+        notification?.actor?.profilePicture;
 
     return (
         <Pressable

@@ -1,5 +1,28 @@
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
+import API from "./api";
+import { useCommentSheetStore } from "../store/commentSheetStore";
+
+let navigationReady = false;
+const pendingDeepLinks = [];
+
+const markAsRead = (notificationId) => {
+  if (!notificationId) return;
+  API.patch(`/notifications/${notificationId}/read`).catch((error) => {
+    console.warn("[Notification] Could not mark as read", error?.message);
+  });
+};
+
+const normalizeData = (data) => ({
+  ...data,
+  notificationId: data.notificationId || data._id,
+  postId: data.postId || (data.entityType === "POST" ? data.entityId : undefined),
+  commentId: data.commentId || data.metadata?.commentId,
+  conversationId:
+    data.conversationId || (data.entityType === "MESSAGE" ? data.entityId : undefined),
+  userId: data.userId || (data.entityType === "USER" ? data.entityId : undefined),
+  senderId: data.senderId || data.actor?._id,
+});
 
 export function setupNotificationNavigation() {
   // App is running/backgrounded and user taps notification
@@ -17,61 +40,58 @@ export function setupNotificationNavigation() {
 }
 
 export function handleNotificationNavigation(data) {
-  console.log("[Notification] Received data:",data?.type);
-  console.log("[Notification] Conversation ID:",data.conversationId);
-  console.log("[Notification] Post ID:",data.entityId);
-  if (!data?.type) return;
+  const normalizedData = normalizeData(data || {});
+  if (!normalizedData.type) return;
 
-  switch (data.type) {
+  markAsRead(normalizedData.notificationId);
+
+  if (!navigationReady) {
+    pendingDeepLinks.push(normalizedData);
+    return;
+  }
+
+  switch (normalizedData.type) {
     case "MESSAGE":
-      if (data.conversationId) {
-
+      if (normalizedData.conversationId) {
         router.push({
-          pathname: "src/app/(tabs)/chat/[conversationId].jsx",
+          pathname: "/chat/[id]",
           params: {
-            id: String(data.entityId),
+            id: String(normalizedData.conversationId),
+            receiverId: String(normalizedData.senderId || ""),
           },
         });
       }
       break;
 
     case "LIKE":
-      if (data.postId) {
-        router.push({
-          pathname: "/post/[id]",
-          params: {
-            id: String(data.postId),
-          },
-        });
-      }
-      break;
-
     case "COMMENT":
-      if (data.postId) {
-        router.push({
-          pathname: "/post/[id]",
-          params: {
-            id: String(data.postId),
-          },
+      if (normalizedData.postId) {
+        useCommentSheetStore.getState().open(normalizedData.postId, {
+          highlightCommentId: normalizedData.commentId,
         });
       }
       break;
 
     case "FOLLOW":
-      if (data.userId) {
+    case "MENTION":
+      if (normalizedData.userId) {
         router.push({
-          pathname: "/profile/[id]",
+          pathname: "/profile/[profileId]",
           params: {
-            id: String(data.userId),
+            profileId: String(normalizedData.userId),
           },
         });
       }
       break;
 
     default:
-      console.log(
-        "[Notification] Unknown type:",
-        data.type
-      );
+      console.log("[Notification] Unknown type:", normalizedData.type);
+  }
+}
+
+export function markNotificationNavigationReady() {
+  navigationReady = true;
+  while (pendingDeepLinks.length) {
+    handleNotificationNavigation(pendingDeepLinks.shift());
   }
 }

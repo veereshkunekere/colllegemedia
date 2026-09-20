@@ -18,7 +18,11 @@ import * as Notifications from "expo-notifications";
 
 import {useNotificationToastStore} from "../store/notifiactionToast"; 
 import NotificationToast from "../styling/components/notifications/NotificationToast";
-import {setupNotificationNavigation,handleNotificationNavigation} from "../services/notificationNavigation";
+import {
+  setupNotificationNavigation,
+  handleNotificationNavigation,
+  markNotificationNavigationReady,
+} from "../services/notificationNavigation";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function RootLayout() {
@@ -63,6 +67,7 @@ export default function RootLayout() {
 
   checkInitialNotification();
     const cleanup = setupNotificationNavigation();
+  requestAnimationFrame(markNotificationNavigationReady);
     return cleanup;
   }, []);
 
@@ -92,6 +97,7 @@ export default function RootLayout() {
           <Stack screenOptions={{headerShown: false,}}>
          <Stack.Screen name="(tabs)"/>
          <Stack.Screen name="(auth)"/>
+         
         </Stack>
         <NotificationToast
                     notification={

@@ -44,6 +44,10 @@ const tweetSchema= new mongoose.Schema({
             trim: true,
             maxlength: 200
         },
+        mentions: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }],
         createdAt: {
             type: Date,
             default: Date.now

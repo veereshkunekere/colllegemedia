@@ -44,6 +44,24 @@ export const useAuthStore = create((set, get) => ({
   resetEmail: null,
   stopSocketService:null,
 
+  stopCurrentSocketService: () => {
+    const stop = get().stopSocketService;
+
+    if (stop) {
+        console.log(
+            "[Auth] Stopping existing socket services"
+        );
+
+        stop();
+    }
+
+    disconnectSocket();
+
+    set({
+        stopSocketService: null,
+    });
+},
+
   // ─── SIGNUP ────────────────────────────────────────────────────────────────
   // Sends user details to /auth/verify-email with publicKey: null.
   // No key generation happens here — keys are created on the OTP screen.
@@ -117,7 +135,9 @@ export const useAuthStore = create((set, get) => ({
 
       set({ user: data.user, token: data.token });
 
-      get().stopSocketService = startSocketServices({ token: data.token, userId: data.user._id });
+      get().stopCurrentSocketService();
+      const stopSocketService = startSocketServices({ token: data.token, userId: data.user._id });
+      set({ stopSocketService: stopSocketService });
 
       return { success: true };
     } catch (error) {
@@ -160,7 +180,16 @@ export const useAuthStore = create((set, get) => ({
         console.log("Keys are in sync");
       }
       
-      get().stopSocketService=startSocketServices({ token: data.token, userId: data.user._id });
+      get().stopCurrentSocketService();
+
+      const stopSocketService = startSocketServices({
+               token: data.token,
+           userId: data.user._id,
+       });
+
+       set({
+           stopSocketService: stopSocketService
+       });
 
       return { success: true };
     } catch (error) {

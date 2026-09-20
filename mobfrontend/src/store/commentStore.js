@@ -142,6 +142,7 @@ export const useCommentStore =
 );
           return {
             success: false,
+            message: error.message || "Couldn't add comment. Try again.",
           };
         }
       },

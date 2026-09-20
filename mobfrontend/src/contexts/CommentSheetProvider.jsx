@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useRef, useState, useCallback} from "react";
+import { createContext, useContext, useMemo, useRef, useState, useCallback, useEffect} from "react";
 import BottomSheet, {
   BottomSheetFlatList,
   BottomSheetTextInput,
@@ -10,39 +10,97 @@ import {
   StyleSheet,
   Keyboard,
   Platform,
-  Alert
+  Alert,
 } from "react-native";
 import { useCommentStore } from "../store/commentStore";
 import { useAuthStore } from "../store/authStore";
 import { Ionicons } from "@expo/vector-icons";
+import { formatTimeAgo } from "../utils/formatTime";
+import { searchUsers } from "../services/searchService";
+import { useCommentSheetStore } from "../store/commentSheetStore";
+import { useRouter } from "expo-router";
 
 const CommentSheetContext = createContext();
 
 export const CommentSheetProvider = ({ children }) => {
   const bottomSheetRef = useRef(null);
+  const commentsListRef = useRef(null);
   const inputRef = useRef(null);
 
-  const [selectedPost, setSelectedPost] = useState(null);
   const [commentText, setCommentText] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
+  const [mentionSuggestions, setMentionSuggestions] = useState([]);
 
   const { comments, loadComments, createComment, deleteComment } = useCommentStore();
   const currentUserId = useAuthStore(
   (state) => state.user?._id
 );
+  const openPostId = useCommentSheetStore((state) => state.openPostId);
+  const highlightCommentId = useCommentSheetStore((state) => state.highlightCommentId);
+  const openSheet = useCommentSheetStore((state) => state.open);
+  const closeSheet = useCommentSheetStore((state) => state.close);
+  const setSheetReady = useCommentSheetStore((state) => state.setReady);
+  const selectedPost = openPostId ? { _id: openPostId } : null;
+  const router = useRouter();
 
   const snapPoints = useMemo(() => ["65%", "85%"], []);
+
+  useEffect(() => {
+    setSheetReady(true);
+    return () => setSheetReady(false);
+  }, [setSheetReady]);
+
+  useEffect(() => {
+    if (!openPostId) return;
+
+    loadComments(openPostId).then(() => {
+      const index = useCommentStore.getState().comments.findIndex(
+        (comment) => String(comment._id) === String(highlightCommentId)
+      );
+      requestAnimationFrame(() => {
+        bottomSheetRef.current?.snapToIndex(0);
+        if (index >= 0) {
+          commentsListRef.current?.scrollToIndex({ index, animated: false });
+        }
+      });
+    });
+  }, [openPostId, highlightCommentId, loadComments]);
+
+  useEffect(() => {
+    const beforeCursor = commentText.slice(0, selection.start);
+    const token = beforeCursor.match(/(^|\s)@(\w*)$/);
+    if (!token || !token[2]) {
+      setMentionSuggestions([]);
+      return undefined;
+    }
+
+    const timeout = setTimeout(async () => {
+      try {
+        setMentionSuggestions(await searchUsers(token[2]));
+      } catch (_) {
+        setMentionSuggestions([]);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeout);
+  }, [commentText, selection.start]);
 
   const handleAddComment = useCallback(async () => {
   if (!selectedPost) return;
   if (!commentText.trim()) return;
 
-  await createComment(
+  const result = await createComment(
     selectedPost._id,
     commentText
   );
 
+  if (!result.success) {
+    Alert.alert("Error", result.message || "Couldn't add comment. Try again.");
+    return;
+  }
+
   setCommentText("");
+  setSelection({ start: 0, end: 0 });
 }, [commentText, createComment, selectedPost]);
 
   const handleDeleteComment = useCallback(
@@ -80,16 +138,9 @@ export const CommentSheetProvider = ({ children }) => {
 
   const openComments = useCallback(
   async (post) => {
-    setSelectedPost(post);
-    setIsOpen(true);
-
-    await loadComments(post._id);
-
-    requestAnimationFrame(() => {
-      bottomSheetRef.current?.snapToIndex(0);
-    });
+    openSheet(post._id);
   },
-  [loadComments]
+  [openSheet]
 );
 
   const closeComments = useCallback(() => {
@@ -98,10 +149,49 @@ export const CommentSheetProvider = ({ children }) => {
   }, []);
 
   const handleSheetClose = useCallback(() => {
-    setSelectedPost(null);
-    setIsOpen(false);
+    closeSheet();
     setCommentText("");
+    setMentionSuggestions([]);
+  }, [closeSheet]);
+
+  const handleSelectMention = useCallback((user) => {
+    const beforeCursor = commentText.slice(0, selection.start);
+    const tokenStart = beforeCursor.lastIndexOf("@");
+    const nextText = `${commentText.slice(0, tokenStart)}@${user.username} ${commentText.slice(selection.start)}`;
+    const nextCursor = tokenStart + user.username.length + 2;
+    setCommentText(nextText);
+    setSelection({ start: nextCursor, end: nextCursor });
+    setMentionSuggestions([]);
+  }, [commentText, selection.start]);
+
+  const handleReply = useCallback((item) => {
+    const username = item.userId?.username || item.username;
+    const nextText = `@${username} `;
+    setCommentText(nextText);
+    setSelection({ start: nextText.length, end: nextText.length });
+    inputRef.current?.focus();
   }, []);
+
+  const renderCommentContent = useCallback((item) => {
+    const mentionByUsername = new Map(
+      (item.mentions || []).map((mention) => [mention.username, mention._id])
+    );
+    return item.content.split(/(@\w+)/g).map((part, index) => {
+      const username = part.startsWith("@") ? part.slice(1) : null;
+      if (!username || !mentionByUsername.has(username)) {
+        return <Text key={index}>{part}</Text>;
+      }
+      return (
+        <Text
+          key={index}
+          style={styles.mention}
+          onPress={() => router.push({ pathname: "/profile/[profileId]", params: { profileId: String(mentionByUsername.get(username)) } })}
+        >
+          {part}
+        </Text>
+      );
+    });
+  }, [router]);
 
 
 const renderItem = useCallback(
@@ -111,7 +201,7 @@ const renderItem = useCallback(
       String(currentUserId);
 
     return (
-      <View style={styles.commentItem}>
+      <View style={[styles.commentItem, String(item._id) === String(highlightCommentId) && styles.highlightedComment]}>
         <View style={styles.commentAvatar}>
           <Text style={styles.avatarText}>
             {(item.userId?.username ||
@@ -127,15 +217,15 @@ const renderItem = useCallback(
           </Text>
 
           <Text style={styles.commentText}>
-            {item.content}
+            {renderCommentContent(item)}
           </Text>
 
           <View style={styles.commentMeta}>
             <Text style={styles.commentTime}>
-              2h
+              {formatTimeAgo(item.createdAt)}
             </Text>
 
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => handleReply(item)}>
               <Text style={styles.replyBtn}>
                 Reply
               </Text>
@@ -179,7 +269,7 @@ const renderItem = useCallback(
       </View>
     );
   },
-  [currentUserId, handleDeleteComment]
+  [currentUserId, handleDeleteComment, handleReply, highlightCommentId, renderCommentContent]
 );
 
   return (
@@ -205,17 +295,29 @@ const renderItem = useCallback(
         </View>
 
         {/* INPUT FIELD — NOW AT THE TOP */}
+        <View style={styles.inputSection}>
+        {mentionSuggestions.length > 0 && (
+          <View style={styles.mentionDropdown}>
+            {mentionSuggestions.map((user) => (
+              <TouchableOpacity key={user._id} style={styles.mentionSuggestion} onPress={() => handleSelectMention(user)}>
+                <Text style={styles.mentionSuggestionText}>@{user.username}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
         <View style={styles.inputRow}>
           <View style={styles.inputWrap}>
             <BottomSheetTextInput
               ref={inputRef}
               value={commentText}
               onChangeText={setCommentText}
+              selection={selection}
+              onSelectionChange={({ nativeEvent }) => setSelection(nativeEvent.selection)}
               placeholder="Add a comment..."
               placeholderTextColor="#555"
               style={styles.textInput}
               multiline
-              maxLength={300}
+              maxLength={200}
               returnKeyType="send"
               onSubmitEditing={handleAddComment}
             />
@@ -230,10 +332,12 @@ const renderItem = useCallback(
             </Text>
           </TouchableOpacity>
         </View>
+        </View>
 
         {/* COMMENTS LIST — Below the input */}
         <BottomSheetFlatList
           data={comments}
+          ref={commentsListRef}
           keyExtractor={(item) => item._id}
           renderItem={renderItem}
           keyboardShouldPersistTaps="handled"
@@ -285,6 +389,26 @@ const styles = StyleSheet.create({
     backgroundColor: "#111",
     gap: 10,
   },
+  inputSection: {
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#222",
+    backgroundColor: "#111",
+  },
+  mentionDropdown: {
+    marginHorizontal: 12,
+    marginBottom: 4,
+    backgroundColor: "#1e1e1e",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  mentionSuggestion: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  mentionSuggestionText: {
+    color: "#c4b5fd",
+    fontSize: 14,
+  },
   inputWrap: {
     flex: 1,
     backgroundColor: "#1e1e1e",
@@ -326,6 +450,11 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 10,
   },
+  highlightedComment: {
+    backgroundColor: "#2b2140",
+    borderRadius: 10,
+    paddingHorizontal: 8,
+  },
   commentAvatar: {
     width: 34,
     height: 34,
@@ -353,6 +482,10 @@ const styles = StyleSheet.create({
     color: "#ccc",
     fontSize: 14,
     lineHeight: 20,
+  },
+  mention: {
+    color: "#a78bfa",
+    fontWeight: "600",
   },
   commentMeta: {
     flexDirection: "row",

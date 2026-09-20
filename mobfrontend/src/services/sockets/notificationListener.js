@@ -15,7 +15,7 @@ export const registerNotificationListener = () => {
     const handleNotification = (notification) => {
         console.log(
             "[Notification] New notification:",
-            notification,notification.username
+            notification
         );
 
         useNotificationStore

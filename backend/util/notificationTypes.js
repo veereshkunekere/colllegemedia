@@ -3,8 +3,6 @@ const NotificationTypes = Object.freeze({
 
   COMMENT: "COMMENT",
 
-  REPLY: "REPLY",
-
   FOLLOW: "FOLLOW",
 
   MENTION: "MENTION",
