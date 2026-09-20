@@ -27,7 +27,7 @@ Router.get("/user/:userId",auth,tweetController.getTweetsByUser);
 
 Router.delete("/:tweetId", auth, tweetController.deleteTweet);
 
-Router.get("/:tweetId",tweetController.getATweet);
+Router.get("/:tweetId",auth,tweetController.getATweet);
 
 Router.delete("/comment/:tweetId/:commentId", auth, tweetController.deleteComment);
 
