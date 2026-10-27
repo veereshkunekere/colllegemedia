@@ -156,11 +156,13 @@ try {
   message.plaintext = "[Message could not be decrypted]";
   message.decryptFailed = true;
   await saveMessage(message, myId);
-  // still advance the ratchet so future messages aren't broken
-  const nextReceiveChain = advanceChainKey(currentChain);
-  await saveReceiveState(message.conversationId, nextReceiveChain, message.messageNumber, myId);
-  // update UI
-  set(state => ({ messages: [...state.messages, message] }));
+  // Do not advance the receive ratchet on decryption/authentication failure.
+  // Keep a visible placeholder and allow a later recovery attempt.
+  set(state => ({
+    messages: state.messages.some((msg) => msg._id === message._id)
+      ? state.messages
+      : [...state.messages, message],
+  }));
   return message;
 }
               get().emitMessageDelivered(message._id);
@@ -663,8 +665,9 @@ processSendQueue: async () => {
           console.log("receiver state", await getReceiveState(message.conversationId,get().currentUserId));
           console.log("[SOCKET] activeConversation", get().activeConversation);
           
-          // Ignore my own message
-          if ( String(message.conversationId) !== String(get().activeConversation._id) ) {
+          const activeConversation = get().activeConversation;
+          // Background conversations are recovered when opened and synchronized.
+          if (!activeConversation || String(message.conversationId) !== String(activeConversation._id)) {
             console.log("[SOCKET] message not for active conversation, ignoring");
             return;
           }
@@ -710,10 +713,11 @@ processSendQueue: async () => {
               }));
             },
 
-    handleMessagesSeen: async ({ conversationId }) => {
+    handleMessagesSeen: async ({ conversationId, userId }) => {
 
-    const currentUserId =
-      get().currentUserId;
+    const currentUserId = get().currentUserId;
+    // Seen receipts are broadcast to the room, including the reader.
+    if (userId != null && String(userId) === String(currentUserId)) return;
 
     const myMessages =
       get().messages.filter(
@@ -1030,6 +1034,7 @@ set({messages: [] });
   myId
 ) => {
 
+  let syncSucceeded = false;
   try {
 
     set({
@@ -1112,6 +1117,7 @@ const res = await API.get(`/messages/${conversationId}`, {
     for (const msg of unique) {
       get().enqueueReceiveMessage(msg);
     }
+    syncSucceeded = true;
 
   } 
   catch (error) {
@@ -1124,10 +1130,10 @@ const res = await API.get(`/messages/${conversationId}`, {
   }
   finally {
 
-  set({
-    pendingMessages: [],
+  set((state) => ({
+    pendingMessages: syncSucceeded ? [] : state.pendingMessages,
     isSyncing: false
-  });
+  }));
 
 
   const activeConversation =
