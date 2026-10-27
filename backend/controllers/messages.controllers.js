@@ -227,7 +227,27 @@ messagesControllers.sendMessage = async (req, res) => {
           }
         );
 
-      await newMessage.save();
+      try {
+        await newMessage.save();
+      } catch (error) {
+        // The schema's unique (conversationId, senderId, messageNumber) index
+        // makes retries idempotent when the original request committed but its
+        // response was lost.
+        if (error?.code === 11000 && Number.isSafeInteger(Number(messageNumber))) {
+          const existingMessage = await MessageModel.findOne({
+            conversationId,
+            senderId,
+            messageNumber: Number(messageNumber),
+          });
+          if (existingMessage) {
+            return res.status(200).json({
+              message: "Message already sent",
+              newMessage: existingMessage,
+            });
+          }
+        }
+        throw error;
+      }
       console.log(newMessage);
 
     
