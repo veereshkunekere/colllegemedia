@@ -82,3 +82,17 @@ export const deleteSkippedKey =
    ]
   );
 };
+
+export const getSkippedNumbers = async (conversationId, userId) => {
+  const db = getDB(userId);
+  const rows = await db.getAllAsync(
+    `
+      SELECT messageNumber
+      FROM skipped_keys
+      WHERE conversationId = ?
+      ORDER BY messageNumber ASC
+    `,
+    [conversationId]
+  );
+  return rows.map((row) => Number(row.messageNumber));
+};
