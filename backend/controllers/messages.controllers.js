@@ -84,28 +84,45 @@ messagesControllers.getMessages = async (req, res) => {
       }
 
       const limit = 30;
+      const { cursor, since, after, missing } = req.query;
+      const query = { conversationId };
 
-      // AFTER
-const cursor = req.query.cursor;   // pagination: scrolling back to older messages
-const since = req.query.since;     // sync: catching up on missed messages
+      // Catch-up sync is based on the receiver's ratchet counter, not timestamps.
+      // In a one-to-one conversation, messageNumber belongs to each sender's chain.
+      if (after !== undefined) {
+        const afterNumber = Number(after);
+        if (!Number.isSafeInteger(afterNumber) || afterNumber < -1) {
+          return res.status(400).json({ error: "Invalid message sync cursor" });
+        }
 
-let query = { conversationId };
+        const missingNumbers = String(missing || "")
+          .split(",")
+          .filter(Boolean)
+          .map(Number)
+          .filter((n) => Number.isSafeInteger(n) && n >= 0);
 
-if (since) {
-  const sinceDate = new Date(since);
-  if (!isNaN(sinceDate.getTime())) {
-    query.createdAt = { $gt: sinceDate };
-  }
-}
+        query.senderId = { $ne: req.user };
+        query.$or = [
+          { messageNumber: { $gt: afterNumber } },
+          ...(missingNumbers.length ? [{ messageNumber: { $in: missingNumbers } }] : []),
+        ];
+      } else {
+        // Keep timestamp-based pagination for older history requests.
+        if (since) {
+          const sinceDate = new Date(since);
+          if (!Number.isNaN(sinceDate.getTime())) query.createdAt = { $gt: sinceDate };
+        }
+        if (cursor) {
+          const cursorDate = new Date(cursor);
+          if (!Number.isNaN(cursorDate.getTime())) {
+            query.createdAt = { ...(query.createdAt || {}), $lt: cursorDate };
+          }
+        }
+      }
 
-if (cursor) {
-  query.createdAt = {
-    ...(query.createdAt || {}),
-    $lt: new Date(cursor),
-  };
-}
-
-const messages = await MessageModel.find(query).sort({ createdAt: 1 });
+      const messages = await MessageModel.find(query)
+        .sort(after !== undefined ? { senderId: 1, messageNumber: 1 } : { createdAt: -1 })
+        .limit(limit);
           
 
       return res
@@ -114,7 +131,9 @@ const messages = await MessageModel.find(query).sort({ createdAt: 1 });
           messages,
           nextCursor:
             messages.length > 0
-              ? messages[messages.length - 1].createdAt
+              ? (after !== undefined
+                  ? null
+                  : messages[messages.length - 1].createdAt)
               : null,
         });
     } catch (error) {
@@ -208,7 +227,27 @@ messagesControllers.sendMessage = async (req, res) => {
           }
         );
 
-      await newMessage.save();
+      try {
+        await newMessage.save();
+      } catch (error) {
+        // The schema's unique (conversationId, senderId, messageNumber) index
+        // makes retries idempotent when the original request committed but its
+        // response was lost.
+        if (error?.code === 11000 && Number.isSafeInteger(Number(messageNumber))) {
+          const existingMessage = await MessageModel.findOne({
+            conversationId,
+            senderId,
+            messageNumber: Number(messageNumber),
+          });
+          if (existingMessage) {
+            return res.status(200).json({
+              message: "Message already sent",
+              newMessage: existingMessage,
+            });
+          }
+        }
+        throw error;
+      }
       console.log(newMessage);
 
     
@@ -222,7 +261,16 @@ messagesControllers.sendMessage = async (req, res) => {
   $inc: { [`unreadCounts.${receiverId.toString()}`]: 1 },
 });
 
-      await NotificationService.createNotification({
+      // Deliver the persisted message before running non-critical push work.
+      // Notification/FCM failures must not turn a successful send into an HTTP failure.
+      emitToConversation(conversationId, "newMessage", newMessage);
+
+      res.status(201).json({
+        message: "Message sent",
+        newMessage,
+      });
+
+      void NotificationService.createNotification({
         recipient: receiverId,
         actor: senderId,
         type: NotificationTypes.MESSAGE,
@@ -230,23 +278,11 @@ messagesControllers.sendMessage = async (req, res) => {
         entityId: conversationId,
         metadata: {
           messageId: newMessage._id,
-          messageNumber: newMessage.messageNumber
+          messageNumber: newMessage.messageNumber,
         },
+      }).catch((error) => {
+        console.error("[messages] non-blocking notification failed", error);
       });
-
-      emitToConversation( conversationId, "newMessage", newMessage );
-
-      // SOCKET EMIT
-      // LATER
-
-      return res
-        .status(201)
-        .json({
-          message:
-            "Message sent",
-
-          newMessage,
-        });
     } catch (error) {
       console.log(
         "sendMessage error",

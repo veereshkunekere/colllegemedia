@@ -12,6 +12,14 @@ export const registerMessageListener = () => {
         return () => {};
     }
 
+    const handleConnect = async () => {
+        const store = useChatStore.getState();
+        const conversation = store.activeConversation;
+        if (!conversation?._id || !store.currentUserId) return;
+        const joined = await store.joinConversation(conversation._id);
+        if (joined) await store.loadMessages(conversation._id, store.currentUserId);
+    };
+
     const handleNewMessage = (message) => {
         useChatStore
             .getState()
@@ -30,7 +38,9 @@ export const registerMessageListener = () => {
             .handleMessagesSeen(data);
     };
     
-     socket.on(
+     socket.on("connect", handleConnect);
+
+    socket.on(
         SocketEvents.NEW_MESSAGE,
         handleNewMessage
     );
@@ -46,6 +56,7 @@ export const registerMessageListener = () => {
     );
 
     return () => {
+        socket.off("connect", handleConnect);
         socket.off(
             SocketEvents.NEW_MESSAGE,
             handleNewMessage

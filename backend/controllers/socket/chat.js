@@ -9,18 +9,24 @@ const ConversationModel = require("../../models/conversation.models");
 const { emitToConversation } = require("./presence");
 
 const register = (io, socket) => {
-  socket.on("joinConversation", async (conversationId) => {
+  socket.on("joinConversation", async (conversationId, acknowledge) => {
+    const ack = typeof acknowledge === "function" ? acknowledge : () => {};
     try {
       const exists = await ConversationModel.findOne({
         _id: conversationId,
         participants: socket.userId,
       });
-      if (!exists) return;
+      if (!exists) {
+        ack({ ok: false, error: "Conversation not found or access denied" });
+        return;
+      }
 
-      socket.join(conversationId);
+      await socket.join(conversationId);
       console.log(`[chat] socket ${socket.id} joined ${conversationId}`);
+      ack({ ok: true });
     } catch (error) {
       console.log("[chat] joinConversation error", error);
+      ack({ ok: false, error: "Failed to join conversation" });
     }
   });
 

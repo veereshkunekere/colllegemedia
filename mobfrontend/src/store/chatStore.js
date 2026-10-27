@@ -11,7 +11,7 @@ import {
 
 import { getIdentityKeys,deriveSharedSecret,encryptMessage,decryptMessage,deriveRootKey,deriveInitialChainKeys,deriveMessageKey,advanceChainKey, } from "../services/cryptoService";
 import {getSharedSecret,saveSharedSecret,getRootKey,saveRootKey,loadSession,deleteRatchetState,deleteKeys,getReceiveState,getSendState,saveReceiveState,saveSendState} from "../services/sessionServive"
-import {saveSkippedKey,getSkippedKey,deleteSkippedKey} from "../db/skippedKeysRepository"
+import {saveSkippedKey,getSkippedKey,deleteSkippedKey,getSkippedNumbers} from "../db/skippedKeysRepository"
 import { saveMessage,getMessagesByConversation,markMessageSent,updateMessageStatus, getLastMessage } from "../db/messageRepository";
 
 
@@ -156,11 +156,13 @@ try {
   message.plaintext = "[Message could not be decrypted]";
   message.decryptFailed = true;
   await saveMessage(message, myId);
-  // still advance the ratchet so future messages aren't broken
-  const nextReceiveChain = advanceChainKey(currentChain);
-  await saveReceiveState(message.conversationId, nextReceiveChain, message.messageNumber, myId);
-  // update UI
-  set(state => ({ messages: [...state.messages, message] }));
+  // Do not advance the receive ratchet on decryption/authentication failure.
+  // Keep a visible placeholder and allow a later recovery attempt.
+  set(state => ({
+    messages: state.messages.some((msg) => msg._id === message._id)
+      ? state.messages
+      : [...state.messages, message],
+  }));
   return message;
 }
               get().emitMessageDelivered(message._id);
@@ -579,17 +581,19 @@ processSendQueue: async () => {
               messageNumber: sendMessageNumber,
             };
 
-            const res = await API.post("/messages/sendMessage", finalPayload);
-
-            const realMessage = res.data.newMessage;
+            // Consume this ratchet number before the network request. A timeout
+            // may happen after the server commits, so reusing the number for a
+            // different plaintext would make the receiver treat it as a duplicate.
             const nextSendChain = advanceChainKey(sendChainKey);
-            
             await saveSendState(
               payload.conversationId,
               nextSendChain,
               sendMessageNumber + 1,
               payload.senderId
             );
+
+            const res = await API.post("/messages/sendMessage", finalPayload);
+            const realMessage = res.data.newMessage;
             
             await markMessageSent(
               payload.clientTempId,
@@ -663,8 +667,9 @@ processSendQueue: async () => {
           console.log("receiver state", await getReceiveState(message.conversationId,get().currentUserId));
           console.log("[SOCKET] activeConversation", get().activeConversation);
           
-          // Ignore my own message
-          if ( String(message.conversationId) !== String(get().activeConversation._id) ) {
+          const activeConversation = get().activeConversation;
+          // Background conversations are recovered when opened and synchronized.
+          if (!activeConversation || String(message.conversationId) !== String(activeConversation._id)) {
             console.log("[SOCKET] message not for active conversation, ignoring");
             return;
           }
@@ -710,10 +715,11 @@ processSendQueue: async () => {
               }));
             },
 
-    handleMessagesSeen: async ({ conversationId }) => {
+    handleMessagesSeen: async ({ conversationId, userId }) => {
 
-    const currentUserId =
-      get().currentUserId;
+    const currentUserId = get().currentUserId;
+    // Seen receipts are broadcast to the room, including the reader.
+    if (userId != null && String(userId) === String(currentUserId)) return;
 
     const myMessages =
       get().messages.filter(
@@ -784,12 +790,18 @@ emitMarkSeen: (conversationId) => {
 joinConversation: (conversationId) => {
     const socket = getSocket();
 
-    if (!socket?.connected) return;
+    if (!socket?.connected) return Promise.resolve(false);
 
-    socket.emit(
-        "joinConversation",
-        conversationId
-    );
+    return new Promise((resolve) => {
+      socket.timeout(5000).emit("joinConversation", conversationId, (error, response) => {
+        if (error || !response?.ok) {
+          console.warn("[CHAT] failed to join conversation room", conversationId, error || response?.error);
+          resolve(false);
+          return;
+        }
+        resolve(true);
+      });
+    });
 },
 
 leaveConversation: (conversationId) => {
@@ -1012,13 +1024,12 @@ console.log(
 
 set({messages: [] });
 
-        get().joinConversation(conversation._id);
+        const joined = await get().joinConversation(conversation._id);
+        if (!joined) {
+          console.warn("[CHAT] room join was not acknowledged; sync will still run");
+        }
 
-        await get()
-          .loadMessages(
-            conversation._id,
-            myId
-          );
+        await get().loadMessages(conversation._id, myId);
       },
 
 
@@ -1030,6 +1041,7 @@ set({messages: [] });
   myId
 ) => {
 
+  let syncSucceeded = false;
   try {
 
     set({
@@ -1047,17 +1059,15 @@ set({messages: [] });
       messages: localMessages
     });
 
-    const lastMessage =
-      await getLastMessage(
-        conversationId,
-        myId
-      );
+    const { receiveMessageNumber } = await getReceiveState(conversationId, myId);
+    const missingNumbers = await getSkippedNumbers(conversationId, myId);
 
-    const since = lastMessage ? lastMessage.createdAt : undefined;
-
-const res = await API.get(`/messages/${conversationId}`, {
-  params: since ? { since } : {}
-});
+    const res = await API.get(`/messages/${conversationId}`, {
+      params: {
+        after: receiveMessageNumber,
+        missing: missingNumbers.join(","),
+      }
+    });
 
     console.log(
       "last local msg number",
@@ -1112,6 +1122,7 @@ const res = await API.get(`/messages/${conversationId}`, {
     for (const msg of unique) {
       get().enqueueReceiveMessage(msg);
     }
+    syncSucceeded = true;
 
   } 
   catch (error) {
@@ -1124,10 +1135,10 @@ const res = await API.get(`/messages/${conversationId}`, {
   }
   finally {
 
-  set({
-    pendingMessages: [],
+  set((state) => ({
+    pendingMessages: syncSucceeded ? [] : state.pendingMessages,
     isSyncing: false
-  });
+  }));
 
 
   const activeConversation =
