@@ -581,17 +581,19 @@ processSendQueue: async () => {
               messageNumber: sendMessageNumber,
             };
 
-            const res = await API.post("/messages/sendMessage", finalPayload);
-
-            const realMessage = res.data.newMessage;
+            // Consume this ratchet number before the network request. A timeout
+            // may happen after the server commits, so reusing the number for a
+            // different plaintext would make the receiver treat it as a duplicate.
             const nextSendChain = advanceChainKey(sendChainKey);
-            
             await saveSendState(
               payload.conversationId,
               nextSendChain,
               sendMessageNumber + 1,
               payload.senderId
             );
+
+            const res = await API.post("/messages/sendMessage", finalPayload);
+            const realMessage = res.data.newMessage;
             
             await markMessageSent(
               payload.clientTempId,
