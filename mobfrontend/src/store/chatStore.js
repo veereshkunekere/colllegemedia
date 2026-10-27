@@ -788,12 +788,18 @@ emitMarkSeen: (conversationId) => {
 joinConversation: (conversationId) => {
     const socket = getSocket();
 
-    if (!socket?.connected) return;
+    if (!socket?.connected) return Promise.resolve(false);
 
-    socket.emit(
-        "joinConversation",
-        conversationId
-    );
+    return new Promise((resolve) => {
+      socket.timeout(5000).emit("joinConversation", conversationId, (error, response) => {
+        if (error || !response?.ok) {
+          console.warn("[CHAT] failed to join conversation room", conversationId, error || response?.error);
+          resolve(false);
+          return;
+        }
+        resolve(true);
+      });
+    });
 },
 
 leaveConversation: (conversationId) => {
@@ -1016,13 +1022,12 @@ console.log(
 
 set({messages: [] });
 
-        get().joinConversation(conversation._id);
+        const joined = await get().joinConversation(conversation._id);
+        if (!joined) {
+          console.warn("[CHAT] room join was not acknowledged; sync will still run");
+        }
 
-        await get()
-          .loadMessages(
-            conversation._id,
-            myId
-          );
+        await get().loadMessages(conversation._id, myId);
       },
 
 
