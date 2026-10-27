@@ -11,7 +11,7 @@ import {
 
 import { getIdentityKeys,deriveSharedSecret,encryptMessage,decryptMessage,deriveRootKey,deriveInitialChainKeys,deriveMessageKey,advanceChainKey, } from "../services/cryptoService";
 import {getSharedSecret,saveSharedSecret,getRootKey,saveRootKey,loadSession,deleteRatchetState,deleteKeys,getReceiveState,getSendState,saveReceiveState,saveSendState} from "../services/sessionServive"
-import {saveSkippedKey,getSkippedKey,deleteSkippedKey} from "../db/skippedKeysRepository"
+import {saveSkippedKey,getSkippedKey,deleteSkippedKey,getSkippedNumbers} from "../db/skippedKeysRepository"
 import { saveMessage,getMessagesByConversation,markMessageSent,updateMessageStatus, getLastMessage } from "../db/messageRepository";
 
 
@@ -1052,17 +1052,15 @@ set({messages: [] });
       messages: localMessages
     });
 
-    const lastMessage =
-      await getLastMessage(
-        conversationId,
-        myId
-      );
+    const { receiveMessageNumber } = await getReceiveState(conversationId, myId);
+    const missingNumbers = await getSkippedNumbers(conversationId, myId);
 
-    const since = lastMessage ? lastMessage.createdAt : undefined;
-
-const res = await API.get(`/messages/${conversationId}`, {
-  params: since ? { since } : {}
-});
+    const res = await API.get(`/messages/${conversationId}`, {
+      params: {
+        after: receiveMessageNumber,
+        missing: missingNumbers.join(","),
+      }
+    });
 
     console.log(
       "last local msg number",
